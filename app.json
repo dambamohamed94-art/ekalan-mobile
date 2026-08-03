@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.momo223.ekalan",
+       "bundleIdentifier": "com.ekalan.education",
       "buildNumber": "1",
       "icon": "./assets/images/logo_mobile.png",
       "infoPlist": {
@@ -41,7 +41,7 @@
       "permissions": [
         "INTERNET"
       ],
-      "package": "com.momo223.ekalanmobile"
+      "package": "com.ekalan.education"
     },
     "web": {
       "output": "static",
