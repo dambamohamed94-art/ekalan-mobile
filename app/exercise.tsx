@@ -131,13 +131,7 @@ export default function ExercisePage() {
         accessibilityLabel="Commencer l’exercice"
         accessibilityRole="button"
         style={styles.button}
-        onPress={() => {
-          console.log("EXERCICE IA À GÉNÉRER:", {
-            subject,
-            chapter,
-            exercise,
-          });
-        }}
+        disabled
       >
         <Text style={styles.buttonText}>Commencer l’exercice 🚀</Text>
       </Pressable>

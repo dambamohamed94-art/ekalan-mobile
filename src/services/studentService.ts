@@ -7,6 +7,8 @@ export type Subject = {
   description: string;
   progress: number;
   last_lesson: string;
+  chapters_count?: number;
+  lessons_count?: number;
   url: string;
 };
 

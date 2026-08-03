@@ -188,11 +188,15 @@ export default function LessonPage() {
       </Pressable>
 
       <View style={styles.hero}>
-        <Text style={styles.eyebrow}>
-          LEÇON {(Number(lesson?.index) || 0) + 1} SUR {lesson?.total || 1}
-        </Text>
-        <Text style={styles.title}>{lesson?.title || "Leçon"}</Text>
-        {lesson?.summary ? <Text style={styles.summary}>{lesson.summary}</Text> : null}
+        <View style={styles.heroGlow} />
+        <View style={styles.heroCopy}>
+          <Text style={styles.eyebrow}>LEÇON {(Number(lesson?.index) || 0) + 1} SUR {lesson?.total || 1}</Text>
+          <Text style={styles.title}>{lesson?.title || "Leçon"}</Text>
+          {lesson?.summary ? <Text style={styles.summary}>{lesson.summary}</Text> : null}
+          <View style={styles.heroProgress}><View style={[styles.heroProgressFill, { width: `${getLessonProgress(lesson)}%` }]} /></View>
+          <Text style={styles.heroProgressText}>{getLessonProgress(lesson)}% terminé</Text>
+        </View>
+        <Image contentFit="contain" source={require("../assets/images/sacko-student-mascot.png")} style={styles.mascot} />
       </View>
 
       <SackoContextButton
@@ -204,7 +208,7 @@ export default function LessonPage() {
 
       <View style={styles.headingRow}>
         <View>
-          <Text style={styles.sectionEyebrow}>PARCOURS</Text>
+          <Text style={styles.sectionEyebrow}>PARCOURS PÉDAGOGIQUE</Text>
           <Text style={styles.sectionTitle}>Scènes pédagogiques</Text>
         </View>
         <Text style={styles.sceneCount}>{scenes.length}</Text>
@@ -234,7 +238,7 @@ export default function LessonPage() {
             ]}
           >
             <View style={[styles.sceneIcon, { backgroundColor: `${scene.color}18` }]}>
-              <MaterialIcons color={scene.color} name={scene.icon} size={32} />
+              <MaterialIcons color={scene.color} name={scene.icon} size={39} />
             </View>
             <View style={styles.sceneCopy}>
               <Text style={styles.sceneTitle}>{scene.title}</Text>
@@ -296,6 +300,12 @@ export default function LessonPage() {
   );
 }
 
+function getLessonProgress(lesson: any) {
+  const raw = lesson?.progress_percent ?? lesson?.progress ?? lesson?.completion_percentage ?? 0;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 0;
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: 20, paddingBottom: 110 },
@@ -321,11 +331,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 30,
     padding: 24,
+    minHeight: 260,
+    flexDirection: "row",
+    alignItems: "center",
     overflow: "hidden",
   },
+  heroGlow: { position: "absolute", right: -70, top: -50, width: 240, height: 240, borderRadius: 120, backgroundColor: "rgba(51,211,153,.16)" },
+  heroCopy: { flex: 1, zIndex: 2 },
+  mascot: { width: "48%", height: 235, alignSelf: "flex-end", marginRight: -25, marginBottom: -25 },
   eyebrow: { color: "#BFDBFE", fontSize: 11, fontWeight: "900", letterSpacing: 1 },
   title: { color: colors.surface, fontSize: 28, fontWeight: "900", marginTop: 8 },
   summary: { color: "#DDEBFF", fontSize: 14, fontWeight: "700", lineHeight: 21, marginTop: 8 },
+  heroProgress: { width: "88%", height: 8, borderRadius: 5, backgroundColor: "rgba(255,255,255,.22)", marginTop: 19, overflow: "hidden" },
+  heroProgressFill: { height: "100%", borderRadius: 5, backgroundColor: "#4ADE80" },
+  heroProgressText: { color: "#86EFAC", fontSize: 12, fontWeight: "900", marginTop: 7 },
   headingRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -347,7 +366,7 @@ const styles = StyleSheet.create({
   },
   sceneCard: {
     width: "47.8%",
-    minHeight: 188,
+    minHeight: 210,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
@@ -355,7 +374,11 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     borderWidth: 1,
     padding: 14,
-    elevation: 3,
+    shadowColor: "#8FA5C4",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.13,
+    shadowRadius: 15,
+    elevation: 4,
   },
   sceneGrid: {
     flexDirection: "row",
@@ -366,8 +389,8 @@ const styles = StyleSheet.create({
   },
   sceneCardPressed: { opacity: 0.82, transform: [{ scale: 0.99 }] },
   sceneIcon: {
-    width: 58,
-    height: 58,
+    width: 72,
+    height: 72,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 18,

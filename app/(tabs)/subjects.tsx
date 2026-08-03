@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { ComponentProps, useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -23,7 +23,6 @@ import { getUser } from "../../src/storage/userStorage";
 import { colors } from "../../src/theme/colors";
 import { User } from "../../src/types/user";
 import { clampProgress } from "../../src/utils/progress";
-import { RoleHome } from "../../components/role-home";
 
 type IconName = ComponentProps<typeof MaterialIcons>["name"];
 
@@ -154,7 +153,7 @@ export default function Subjects() {
   }
 
   if (user?.role !== "student") {
-    return user ? <RoleHome user={user} /> : null;
+    return user ? <Redirect href="/(tabs)/dashboard" /> : null;
   }
 
   if (error) {
@@ -201,9 +200,11 @@ export default function Subjects() {
 
   return (
     <FlatList
+      columnWrapperStyle={styles.subjectRow}
       contentContainerStyle={styles.content}
       data={subjects}
       keyExtractor={(item) => item.key}
+      numColumns={2}
       ListEmptyComponent={
         <DataState
           message="Tes matières apparaîtront ici dès qu’elles seront disponibles pour ta classe."
@@ -293,6 +294,20 @@ export default function Subjects() {
             />
           </Pressable>
 
+          <Pressable
+            accessibilityLabel="Voir mes exercices attribués"
+            accessibilityRole="button"
+            onPress={() => router.push("/assignments")}
+            style={styles.assignmentBanner}
+          >
+            <MaterialIcons color="#FFFFFF" name="assignment" size={25} />
+            <View style={styles.assignmentCopy}>
+              <Text style={styles.assignmentTitle}>Mes exercices attribués</Text>
+              <Text style={styles.assignmentText}>Consulte et envoie tes réponses à ton professeur.</Text>
+            </View>
+            <MaterialIcons color="#FFFFFF" name="arrow-forward" size={22} />
+          </Pressable>
+
           <View style={styles.summaryRow}>
             <View style={styles.summaryCard}>
               <View style={[styles.summaryIcon, styles.summaryIconActive]}>
@@ -356,38 +371,6 @@ export default function Subjects() {
               pressed && styles.subjectCardPressed,
             ]}
           >
-            <View style={styles.subjectCopy}>
-              <View
-                style={[
-                  styles.subjectAccent,
-                  { backgroundColor: visual.accent },
-                ]}
-              />
-              <Text numberOfLines={2} style={styles.subjectName}>
-                {item.name}
-              </Text>
-              <Text numberOfLines={1} style={styles.lessonText}>
-                {item.last_lesson || "Découvrir les leçons"}
-              </Text>
-
-              <View style={styles.subjectProgressRow}>
-                <View style={styles.subjectTrack}>
-                  <View
-                    style={[
-                      styles.subjectFill,
-                      {
-                        backgroundColor: visual.accent,
-                        width: `${subjectProgress}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={[styles.subjectPercent, { color: visual.accent }]}>
-                  {subjectProgress}%
-                </Text>
-              </View>
-            </View>
-
             <View
               style={[
                 styles.subjectIllustration,
@@ -405,18 +388,15 @@ export default function Subjects() {
                 name={visual.icon}
                 size={isCompact ? 48 : 58}
               />
-              <View
-                style={[
-                  styles.openIcon,
-                  { backgroundColor: visual.accent },
-                ]}
-              >
-                <MaterialIcons
-                  color={colors.surface}
-                  name="arrow-forward"
-                  size={18}
-                />
+            </View>
+            <View style={styles.subjectCopy}>
+              <Text numberOfLines={2} style={[styles.subjectName, { color: visual.accent }]}>{item.name}</Text>
+              <Text style={styles.subjectCounts}>{item.chapters_count ?? 0} chapitre(s) · {item.lessons_count ?? 0} leçon(s)</Text>
+              <View style={styles.subjectProgressRow}>
+                <View style={styles.subjectTrack}><View style={[styles.subjectFill, { backgroundColor: visual.accent, width: `${subjectProgress}%` }]} /></View>
+                <Text style={[styles.subjectPercent, { color: visual.accent }]}>{subjectProgress}%</Text>
               </View>
+              <View style={[styles.startButton, { backgroundColor: visual.accent }]}><Text style={styles.startButtonText}>Commencer</Text><View style={styles.startArrow}><MaterialIcons color={visual.accent} name="chevron-right" size={18} /></View></View>
             </View>
           </Pressable>
         );
@@ -556,6 +536,20 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     transform: [{ scale: 0.99 }],
   },
+  assignmentBanner: {
+    marginHorizontal: 20,
+    marginTop: 14,
+    paddingHorizontal: 17,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderRadius: 20,
+    backgroundColor: colors.success,
+  },
+  assignmentCopy: { flex: 1 },
+  assignmentTitle: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
+  assignmentText: { marginTop: 3, color: "#E8FFF1", fontSize: 12, lineHeight: 17, fontWeight: "700" },
   progressIcon: {
     width: 54,
     height: 54,
@@ -671,22 +665,26 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "900",
   },
+  subjectRow: {
+    gap: 12,
+    paddingHorizontal: 16,
+  },
   subjectCard: {
-    minHeight: 154,
-    flexDirection: "row",
-    alignItems: "stretch",
+    flexBasis: "48%",
+    flexGrow: 0,
+    minWidth: 0,
+    minHeight: 286,
     overflow: "hidden",
     backgroundColor: colors.surface,
     borderColor: "#E6EAF0",
-    borderRadius: 30,
+    borderRadius: 24,
     borderWidth: 1,
-    marginHorizontal: 20,
-    marginTop: 16,
-    shadowColor: "#DCC8B7",
-    shadowOffset: { width: 0, height: 9 },
-    shadowOpacity: 0.55,
-    shadowRadius: 0,
-    elevation: 4,
+    marginTop: 14,
+    shadowColor: colors.primaryDark,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 5,
   },
   subjectCardPressed: {
     opacity: 0.88,
@@ -694,34 +692,26 @@ const styles = StyleSheet.create({
   },
   subjectCopy: {
     flex: 1,
-    justifyContent: "center",
-    paddingLeft: 20,
-    paddingRight: 12,
-    paddingVertical: 18,
-  },
-  subjectAccent: {
-    width: 34,
-    height: 5,
-    borderRadius: 3,
-    marginBottom: 10,
+    alignItems: "center",
+    paddingHorizontal: 11,
+    paddingBottom: 12,
+    paddingTop: 13,
   },
   subjectName: {
     color: colors.textStrong,
-    fontSize: 22,
+    fontSize: 17,
     fontWeight: "900",
-    lineHeight: 27,
+    lineHeight: 21,
+    minHeight: 42,
+    textAlign: "center",
   },
-  lessonText: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 7,
-  },
+  subjectCounts: { color: colors.textStrong, fontSize: 10, lineHeight: 15, fontWeight: "800", marginTop: 3, textAlign: "center" },
   subjectProgressRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    marginTop: 13,
+    width: "100%",
+    marginTop: 10,
   },
   subjectTrack: {
     flex: 1,
@@ -739,28 +729,21 @@ const styles = StyleSheet.create({
     fontWeight: "900",
   },
   subjectIllustration: {
-    width: "37%",
-    minWidth: 116,
+    width: "100%",
+    height: 128,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
   },
   decorativeCircle: {
     position: "absolute",
-    top: -35,
-    right: -35,
-    width: 125,
-    height: 125,
-    borderRadius: 63,
+    top: -42,
+    right: -42,
+    width: 135,
+    height: 135,
+    borderRadius: 68,
   },
-  openIcon: {
-    position: "absolute",
-    right: 12,
-    bottom: 12,
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 16,
-  },
+  startButton: { width: "100%", minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 18, marginTop: 10, paddingHorizontal: 8 },
+  startButtonText: { color: "#FFFFFF", fontSize: 12, fontWeight: "900" },
+  startArrow: { width: 23, height: 23, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#FFFFFF" },
 });

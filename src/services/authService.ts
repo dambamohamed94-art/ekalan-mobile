@@ -1,7 +1,11 @@
 import { isAxiosError } from "axios";
 import { api } from "../api/client";
 import { ApiResponse, getApiData } from "../api/response";
-import { getUser, removeUser, saveUser } from "../storage/userStorage";
+import {
+  isSessionRestoreBlocked,
+  removeUser,
+  saveUser,
+} from "../storage/userStorage";
 import { User } from "../types/user";
 
 type LoginResult = {
@@ -49,8 +53,7 @@ export async function getCurrentUser(): Promise<User> {
 }
 
 export async function restoreSession(): Promise<User | null> {
-  const cachedUser = await getUser();
-  if (!cachedUser) {
+  if (await isSessionRestoreBlocked()) {
     return null;
   }
 
@@ -64,7 +67,9 @@ export async function restoreSession(): Promise<User | null> {
       return null;
     }
 
-    return cachedUser;
+    // Le cache local ne constitue jamais une preuve d'authentification.
+    // Sans confirmation du backend, les écrans privés restent fermés.
+    return null;
   }
 }
 
@@ -81,11 +86,15 @@ export async function login(email: string, password: string): Promise<User> {
 }
 
 export async function logout() {
-  await removeUser();
-
-  await api.post("/auth/logout").catch((error) => {
-    console.warn("LOGOUT SERVER ERROR:", error);
-  });
+  try {
+    await api.post("/auth/logout");
+  } catch {
+    // Le compte doit rester déconnecté localement même sans réseau.
+  } finally {
+    // La session locale est toujours fermée. Le marqueur empêche qu'un cookie
+    // serveur non supprimé après une panne reconnecte silencieusement le compte.
+    await removeUser();
+  }
 }
 
 export async function registerStudent(data: {

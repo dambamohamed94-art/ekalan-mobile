@@ -25,12 +25,30 @@ export function buildSackoTutorPayload(
     context.lesson,
   ];
 
-  if (!cleanMessage || requiredContext.some((value) => !value?.trim())) {
+  if (
+    !cleanMessage ||
+    cleanMessage.length > 2000 ||
+    requiredContext.some((value) => !value?.trim())
+  ) {
     throw new Error("INVALID_SACKO_PAYLOAD");
   }
 
+  const serializedAnswer =
+    context.student_answer === undefined
+      ? undefined
+      : typeof context.student_answer === "string"
+        ? context.student_answer
+        : JSON.stringify(context.student_answer);
+
   return {
     ...context,
+    scene_index: Math.min(
+      10_000,
+      Math.max(0, Math.trunc(Number(context.scene_index) || 0)),
+    ),
+    question_id: context.question_id?.trim().slice(0, 190) || undefined,
+    student_answer: serializedAnswer?.slice(0, 500),
+    result: context.result?.trim().slice(0, 30) || undefined,
     message: cleanMessage,
     hint_level: Math.min(5, Math.max(1, Math.trunc(hintLevel) || 1)),
   };

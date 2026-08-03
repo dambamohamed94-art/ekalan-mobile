@@ -112,7 +112,7 @@ function list(value: unknown): unknown[] {
 }
 
 function sourceType(question: LearningQuiz) {
-  return String(question.scene_type ?? question.type ?? "")
+  return String(question.question_type ?? question.scene_type ?? question.type ?? "")
     .trim()
     .toLocaleLowerCase("fr")
     .replace(/_/g, "-");
@@ -131,16 +131,16 @@ function normalizedType(type: string): NormalizedQuiz["type"] {
   ) {
     return "choice";
   }
-  if (["fill-missing", "fill-blank", "texte-trous"].includes(type)) return "fill";
+  if (["fill-missing", "fill-blank", "texte-trous", "texte-a-trou", "texte-a-trous"].includes(type)) return "fill";
   if (["pair-match", "association", "matching"].includes(type)) return "pair";
   if (
-    ["click-drop", "schema-drop", "image-schema-drop", "category", "classification"].includes(
+    ["click-drop", "schema-drop", "image-schema-drop", "category", "classification", "classement"].includes(
       type,
     )
   ) {
     return "category";
   }
-  if (["order-sequence", "order", "classement"].includes(type)) return "order";
+  if (["order-sequence", "order", "sequence", "mise-en-ordre"].includes(type)) return "order";
   return "unsupported";
 }
 
@@ -179,7 +179,10 @@ export function normalizeQuiz(question: LearningQuiz, index = 0): NormalizedQuiz
     question.correct_answer ?? question.bonne_reponse ?? question.answer;
   const pairs = list(question.pairs).map((value) => {
     const pair = value as Record<string, unknown>;
-    return { left: media(pair?.left), right: media(pair?.right) };
+    return {
+      left: media(pair?.left ?? pair?.source ?? pair?.question ?? pair?.a),
+      right: media(pair?.right ?? pair?.target ?? pair?.answer ?? pair?.b),
+    };
   });
   const blankValues = list(question.blanks).map((value) => {
     const blank = value as Record<string, unknown>;
@@ -207,7 +210,7 @@ export function normalizeQuiz(question: LearningQuiz, index = 0): NormalizedQuiz
         );
 
   return {
-    id: String(question.id ?? `quiz-${index}`),
+    id: String(question.question_id ?? question.id ?? `quiz-${index}`),
     type,
     sourceType: rawType,
     title: text(question.title ?? question.titre ?? question.model) || "Quiz EKALAN",
@@ -256,6 +259,10 @@ export function normalizeQuizList(questions: LearningQuiz[]) {
 
 export function isNativeQuizScene(question: LearningQuiz) {
   return normalizeQuiz(question).type !== "unsupported";
+}
+
+export function hasOfficialQuestionId(question: LearningQuiz) {
+  return String(question.question_id ?? question.id ?? "").trim().length > 0;
 }
 
 export function comparable(value: unknown): string {

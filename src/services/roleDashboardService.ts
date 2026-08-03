@@ -1,5 +1,10 @@
 import { api } from "../api/client";
 import { ApiResponse, getApiData } from "../api/response";
+import {
+  LinkedDashboardStudent,
+  StudentDashboard,
+} from "../types/dashboard";
+import { UserRole } from "../types/user";
 
 export type LinkedStudent = {
   student_user_id: number;
@@ -108,4 +113,34 @@ export async function getTeacherDashboard(): Promise<TeacherDashboard> {
   const response =
     await api.get<ApiResponse<TeacherDashboard>>("/teachers/me/dashboard");
   return getApiData(response);
+}
+
+export async function getStudentDashboard(
+  studentId?: number,
+): Promise<StudentDashboard> {
+  const response = await api.get<ApiResponse<StudentDashboard>>(
+    "/student/dashboard",
+    { params: studentId ? { student_id: studentId } : undefined },
+  );
+  return getApiData(response);
+}
+
+export async function getLinkedDashboardStudents(
+  role: UserRole,
+): Promise<LinkedDashboardStudent[]> {
+  if (role === "parent") {
+    const response = await api.get<ApiResponse<LinkedDashboardStudent[]>>(
+      "/parents/me/students",
+    );
+    return getApiData(response);
+  }
+
+  if (role === "teacher") {
+    const response = await api.get<
+      ApiResponse<{ students: LinkedDashboardStudent[] }>
+    >("/student/teacher-students");
+    return getApiData(response).students;
+  }
+
+  return [];
 }

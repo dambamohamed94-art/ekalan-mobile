@@ -1,5 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -361,6 +362,7 @@ function ParentStudentDetails({
 }
 
 function TeacherHome({ user }: { user: User }) {
+  const router = useRouter();
   const [dashboard, setDashboard] = useState<TeacherDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -468,6 +470,55 @@ function TeacherHome({ user }: { user: User }) {
 
       <View style={styles.sectionHeader}>
         <View>
+          <Text style={styles.eyebrow}>CENTRE D’ACTIONS PÉDAGOGIQUES</Text>
+          <Text style={styles.sectionTitle}>Actions rapides</Text>
+        </View>
+      </View>
+      <View style={styles.teacherActions}>
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.teacherActionPrimary,
+            pressed && styles.teacherActionPressed,
+          ]}
+          onPress={() =>
+            router.push({ pathname: "/assignments", params: { mode: "create" } })
+          }
+        >
+          <View style={styles.teacherActionIconPrimary}>
+            <MaterialIcons color={colors.surface} name="edit-note" size={27} />
+          </View>
+          <View style={styles.cardCopy}>
+            <Text style={styles.teacherActionPrimaryTitle}>Créer un exercice</Text>
+            <Text style={styles.teacherActionPrimaryText}>
+              Choisir un élève, une matière et une leçon.
+            </Text>
+          </View>
+          <MaterialIcons color={colors.surface} name="arrow-forward" size={23} />
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.teacherActionSecondary,
+            pressed && styles.teacherActionPressed,
+          ]}
+          onPress={() =>
+            router.push({ pathname: "/assignments", params: { mode: "list" } })
+          }
+        >
+          <View style={styles.teacherActionIconSecondary}>
+            <MaterialIcons color={colors.primary} name="assignment" size={25} />
+          </View>
+          <View style={styles.cardCopy}>
+            <Text style={styles.studentName}>Exercices attribués</Text>
+            <Text style={styles.meta}>Consulter les travaux et corriger les remises.</Text>
+          </View>
+          <MaterialIcons color={colors.primary} name="chevron-right" size={25} />
+        </Pressable>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <View>
           <Text style={styles.eyebrow}>ACCOMPAGNEMENT</Text>
           <Text style={styles.sectionTitle}>Mes élèves</Text>
         </View>
@@ -497,6 +548,23 @@ function TeacherHome({ user }: { user: User }) {
                   .join(" · ") || "Informations à confirmer"}
               </Text>
             </View>
+            <Pressable
+              accessibilityLabel={`Créer un exercice pour ${student.name}`}
+              accessibilityRole="button"
+              hitSlop={8}
+              style={({ pressed }) => [
+                styles.studentExerciseButton,
+                pressed && styles.teacherActionPressed,
+              ]}
+              onPress={() =>
+                router.push({
+                  pathname: "/assignments",
+                  params: { mode: "create", studentId: String(student.id) },
+                })
+              }
+            >
+              <MaterialIcons color={colors.surface} name="add" size={22} />
+            </Pressable>
           </View>
         ))
       )}
@@ -684,4 +752,13 @@ const styles = StyleSheet.create({
   statusBadgeText: { color: colors.secondary, fontSize: 10, fontWeight: "900" },
   lessonIcon: { width: 42, height: 42, alignItems: "center", justifyContent: "center", backgroundColor: "#EAF1FF", borderRadius: 13 },
   challengeIcon: { width: 42, height: 42, alignItems: "center", justifyContent: "center", backgroundColor: "#E4F7EA", borderRadius: 13 },
+  teacherActions: { gap: 11, marginTop: 9 },
+  teacherActionPrimary: { flexDirection: "row", alignItems: "center", gap: 13, backgroundColor: colors.primary, borderRadius: 22, padding: 16, elevation: 4 },
+  teacherActionSecondary: { flexDirection: "row", alignItems: "center", gap: 13, backgroundColor: colors.surface, borderColor: "#DDE7F5", borderRadius: 22, borderWidth: 1, padding: 15, elevation: 2 },
+  teacherActionPressed: { opacity: 0.8, transform: [{ scale: 0.99 }] },
+  teacherActionIconPrimary: { width: 47, height: 47, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(255,255,255,0.18)", borderRadius: 15 },
+  teacherActionIconSecondary: { width: 44, height: 44, alignItems: "center", justifyContent: "center", backgroundColor: "#EAF1FF", borderRadius: 14 },
+  teacherActionPrimaryTitle: { color: colors.surface, fontSize: 17, fontWeight: "900" },
+  teacherActionPrimaryText: { color: "#DDEBFF", fontSize: 11, fontWeight: "700", lineHeight: 17, marginTop: 3 },
+  studentExerciseButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", backgroundColor: colors.primary, borderRadius: 14 },
 });

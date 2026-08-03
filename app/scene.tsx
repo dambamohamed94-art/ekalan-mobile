@@ -18,6 +18,7 @@ import { goBackOrReplace } from "../src/navigation/goBackOrReplace";
 import {
   getStudentLessonContext,
   getStudentLessonSceneContent,
+  markLessonSceneOpened,
 } from "../src/services/learningService";
 import { colors } from "../src/theme/colors";
 import {
@@ -125,8 +126,30 @@ function formatLabel(value: string) {
     objectifs: "Objectifs",
     resume_court: "Résumé",
     summary_fun: "En résumé",
+    front: "Question",
+    back: "Réponse",
+    answer: "Réponse",
+    question: "Question",
+    instruction: "Consigne",
   };
   return labels[value] ?? value.replaceAll("_", " ");
+}
+
+function shouldHideTechnicalLabel(key: string) {
+  return [
+    "card",
+    "cards",
+    "data",
+    "elements",
+    "entries",
+    "item",
+    "items",
+    "list",
+    "scene",
+    "scenes",
+    "value",
+    "values",
+  ].includes(key.toLowerCase()) || /^[a-z]$/i.test(key);
 }
 
 function cleanText(value: string) {
@@ -190,6 +213,10 @@ function ContentValue({ value }: { value: unknown }) {
               <Text accessibilityElementsHidden key={key} style={styles.courseIcon}>
                 {String(item)}
               </Text>
+            ) : shouldHideTechnicalLabel(key) ? (
+              <View key={key} style={styles.contentBlock}>
+                <ContentValue value={item} />
+              </View>
             ) : (
               <View key={key} style={styles.contentBlock}>
                 <Text style={styles.blockTitle}>{formatLabel(key)}</Text>
@@ -386,6 +413,15 @@ export default function ScenePage() {
         if (!active) return;
         setContext(data.context);
         setEngineContent(data.content);
+        if (["course", "video", "revision"].includes(scene)) {
+          const mobileScene = scene === "course" ? "cours" : scene;
+          void markLessonSceneOpened({
+            subject,
+            chapter,
+            lesson_id: data.context.lesson.id,
+            scene: mobileScene as "cours" | "video" | "revision",
+          }).catch(() => undefined);
+        }
       })
       .catch((loadError: unknown) =>
         active &&

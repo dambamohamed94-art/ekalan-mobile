@@ -14,6 +14,9 @@ export type QuizFeedback = {
 
 export type QuizAnswerResult = {
   correct: boolean;
+  validation_source?: "server" | "client";
+  attempt_counted?: boolean;
+  status?: "in_progress" | "completed";
   xp_earned: number;
   lives_remaining: number;
   score_pct: number;
@@ -76,6 +79,9 @@ export async function answerStudentQuiz(data: {
   correct_answer: unknown;
   explanation?: string;
   difficulty?: string;
+  is_correct?: boolean;
+  response_time_ms?: number;
+  hint_used?: boolean;
 }) {
   const response = await api.post<ApiResponse<QuizAnswerResult>>(
     "/student/quiz/answer",

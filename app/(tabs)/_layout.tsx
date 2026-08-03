@@ -1,4 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Image } from "expo-image";
 import { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
 import { Tabs } from "expo-router";
 import { useEffect, useState } from "react";
@@ -35,6 +36,9 @@ export default function TabLayout() {
     borderRadius: isCompact ? 16 : 19,
     marginHorizontal: isCompact ? 2 : 4,
     marginVertical: 6,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    borderWidth: 1,
   };
 
   return (
@@ -101,9 +105,7 @@ export default function TabLayout() {
           title: "Sacko",
           tabBarAccessibilityLabel: "Sacko",
           href: isStudent ? undefined : null,
-          tabBarIcon: ({ color }) => (
-            <TabIcon color={color} icon="auto-awesome" size={iconSize} />
-          ),
+          tabBarIcon: () => <Image contentFit="contain" source={require("../../assets/images/sacko-logo-mobile.svg")} style={{ width: iconSize + 5, height: iconSize + 5 }} />,
           tabBarItemStyle: {
             ...tabItemStyle,
             display: isStudent ? "flex" : "none",
@@ -161,11 +163,12 @@ function ActiveTabButton({
       style={({ pressed }) => [
         style,
         styles.tabButton,
-        isActive && styles.tabButtonActive,
         pressed && styles.tabButtonPressed,
       ]}
     >
-      {children}
+      <View style={[styles.tabContent, isActive && styles.tabButtonActive]}>
+        {children}
+      </View>
     </Pressable>
   );
 }
@@ -175,8 +178,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  tabContent: {
+    width: "94%",
+    height: 62,
+    alignItems: "center",
+    justifyContent: "center",
+    borderColor: "transparent",
+    borderRadius: 16,
+    borderWidth: 1.5,
+  },
   tabButtonActive: {
-    backgroundColor: "#DDEBFF",
+    backgroundColor: "#FFF4C2",
+    borderColor: "#F2C94C",
+    borderWidth: 1.5,
+    borderRadius: 18,
   },
   tabButtonPressed: {
     opacity: 0.78,

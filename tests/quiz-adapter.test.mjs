@@ -23,8 +23,22 @@ vm.runInNewContext(compiled, {
   },
 });
 
-const { comparable, normalizeQuiz } = module.exports;
+const { comparable, hasOfficialQuestionId, normalizeQuiz } = module.exports;
 const plain = (value) => JSON.parse(JSON.stringify(value));
+
+test("conserve les identifiants et types officiels attendus par le serveur", () => {
+  const quiz = normalizeQuiz({
+    question_id: "anglais-salutation-01",
+    question_type: "qcm",
+    question: "Choisis.",
+    choices: ["Bonjour", "Au revoir"],
+    correct_answer: "Bonjour",
+  });
+
+  assert.equal(quiz.id, "anglais-salutation-01");
+  assert.equal(quiz.sourceType, "qcm");
+  assert.equal(quiz.type, "choice");
+});
 
 test("normalise les choix illustrés sans produire [object Object]", () => {
   const quiz = normalizeQuiz({
@@ -123,4 +137,34 @@ test("compare les réponses structurées indépendamment de l'ordre des clés", 
     comparable({ second: "B", first: "A" }),
     comparable({ first: "a", second: "b" }),
   );
+});
+
+test("reconnaît les alias historiques validés par le moteur Web", () => {
+  assert.equal(normalizeQuiz({ type: "texte_a_trou" }).type, "fill");
+  assert.equal(normalizeQuiz({ type: "association" }).type, "pair");
+  assert.equal(normalizeQuiz({ type: "classement" }).type, "category");
+  assert.equal(normalizeQuiz({ type: "image-schema-drop" }).type, "category");
+  assert.equal(normalizeQuiz({ type: "vrai_faux" }).type, "choice");
+});
+
+test("distingue une question notée par le serveur d'une question locale", () => {
+  assert.equal(hasOfficialQuestionId({ question_id: "question-01" }), true);
+  assert.equal(hasOfficialQuestionId({ id: "question-02" }), true);
+  assert.equal(hasOfficialQuestionId({ type: "choose-answer" }), false);
+});
+
+test("couvre les sept familles de quiz validées côté Web", () => {
+  const models = [
+    [{ type: "choose-answer", choices: ["A", "B"], answer: "A" }, "choice"],
+    [{ type: "true-false", answer: true }, "choice"],
+    [{ type: "fill-missing", sentence: "A ___", answer: "B" }, "fill"],
+    [{ type: "pair-match", pairs: [{ left: "A", right: "B" }] }, "pair"],
+    [{ type: "click-drop", categories: ["A"], items: [{ text: "B", category: "A" }] }, "category"],
+    [{ type: "schema-drop", categories: ["A"], items: [{ text: "B", category: "A" }] }, "category"],
+    [{ type: "order-sequence", items: ["A", "B"], answer: ["A", "B"] }, "order"],
+  ];
+
+  for (const [raw, expected] of models) {
+    assert.equal(normalizeQuiz(raw).type, expected);
+  }
 });

@@ -25,8 +25,22 @@ export type SackoContext = {
 
 export type SackoContextInput = Partial<SackoContext>;
 
+const SACKO_TABS: SackoTab[] = [
+  "cours",
+  "revision",
+  "quiz",
+  "exercices",
+  "video",
+];
+
 function normalized(value: unknown) {
   return String(value ?? "").trim();
+}
+
+function normalizeTab(value: unknown): SackoTab {
+  return SACKO_TABS.includes(value as SackoTab)
+    ? (value as SackoTab)
+    : "cours";
 }
 
 function selectSubject(home: StudentHome, requestedSubject?: string) {
@@ -89,22 +103,27 @@ export function selectSackoLessonContext(
     throw new Error("SACKO_CONTEXT_UNAVAILABLE");
   }
 
-  const level = normalized(input.level || home.student.class_code);
+  // Le niveau renvoyé par le backend est la source de vérité. Une route
+  // profonde ne doit pas pouvoir injecter le contexte d'une autre classe.
+  const level = normalized(home.student.class_code);
   if (!level) {
     throw new Error("SACKO_LEVEL_UNAVAILABLE");
   }
 
   return {
     level,
-    normalized_level: normalized(input.normalized_level || level),
-    subject: normalized(input.subject || subject.key),
+    normalized_level: level.toLocaleLowerCase("fr"),
+    subject: normalized(subject.key),
     chapter: String(selectedLesson.chapter.id),
     lesson: String(selectedLesson.lesson.id),
-    tab: input.tab ?? "cours",
-    scene_index: Math.max(0, Number(input.scene_index) || 0),
-    question_id: normalized(input.question_id) || undefined,
+    tab: normalizeTab(input.tab),
+    scene_index: Math.min(
+      10_000,
+      Math.max(0, Math.trunc(Number(input.scene_index) || 0)),
+    ),
+    question_id: normalized(input.question_id).slice(0, 190) || undefined,
     student_answer: input.student_answer,
-    result: normalized(input.result) || undefined,
+    result: normalized(input.result).slice(0, 30) || undefined,
     attempted: Boolean(input.attempted),
   };
 }

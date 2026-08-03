@@ -1,11 +1,15 @@
 import { isAxiosError } from "axios";
+import { ApiContractError, ApiFailure } from "./response";
 
-type ApiErrorPayload = {
-  error?: string;
+type ApiErrorPayload = Partial<ApiFailure> & {
   message?: string;
 };
 
 export function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiContractError) {
+    return error.message || fallback;
+  }
+
   if (!isAxiosError<ApiErrorPayload>(error)) {
     return fallback;
   }

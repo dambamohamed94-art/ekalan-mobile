@@ -71,6 +71,7 @@ export default function SackoChat() {
   const [initializationState, setInitializationState] =
     useState<SackoErrorState | null>(null);
   const listRef = useRef<FlatList<Message>>(null);
+  const requestLockRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -153,7 +154,8 @@ export default function SackoChat() {
   }, [initialize]);
 
   const requestReply = async (text: string, appendStudent = true) => {
-    if (!text || sending || !context) return;
+    if (!text || requestLockRef.current || !context) return;
+    requestLockRef.current = true;
 
     if (appendStudent) {
       const studentMessage: Message = {
@@ -193,6 +195,7 @@ export default function SackoChat() {
         },
       ]);
     } finally {
+      requestLockRef.current = false;
       setSending(false);
     }
   };

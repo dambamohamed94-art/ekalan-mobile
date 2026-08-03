@@ -1,4 +1,5 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors } from "../src/theme/colors";
@@ -32,18 +33,17 @@ export function MainBottomNav({
             onPress={() => router.replace(item.href)}
             style={({ pressed }) => [
               styles.item,
-              active && styles.activeItem,
               pressed && styles.pressed,
             ]}
           >
-            <MaterialIcons
-              color={active ? colors.primary : "#64748B"}
-              name={item.icon}
-              size={26}
-            />
-            <Text style={[styles.label, active && styles.activeLabel]}>
-              {item.label}
-            </Text>
+            <View style={[styles.itemContent, active && styles.activeItem]}>
+              {item.label === "Sacko" ? (
+                <Image contentFit="contain" source={require("../assets/images/sacko-logo-mobile.svg")} style={styles.sackoIcon} />
+              ) : (
+                <MaterialIcons color={active ? colors.primary : "#64748B"} name={item.icon} size={26} />
+              )}
+              <Text style={[styles.label, active && styles.activeLabel]}>{item.label}</Text>
+            </View>
           </Pressable>
         );
       })}
@@ -70,10 +70,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 18,
   },
-  activeItem: { backgroundColor: "#DDEBFF" },
+  itemContent: {
+    width: "94%",
+    height: 64,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 16,
+    borderColor: "transparent",
+    borderWidth: 1.5,
+  },
+  activeItem: {
+    backgroundColor: "#FFF4C2",
+    borderColor: "#F2C94C",
+    borderWidth: 1.5,
+  },
   pressed: { opacity: 0.75 },
   label: { color: "#64748B", fontSize: 11, fontWeight: "900", marginTop: 3 },
   activeLabel: { color: colors.primary },
+  sackoIcon: { width: 31, height: 31 },
 });

@@ -41,7 +41,7 @@ export default function RootLayout() {
     const tabSegment = segments[1];
     const isPrivateRoute =
       rootSegment === "(tabs)" ||
-        ["subject", "chapter", "lesson", "scene", "quiz", "quiz-interactive", "exercise", "sacko-chat", "profile-settings", "help", "subscription"].includes(
+        ["subject", "chapter", "lesson", "scene", "quiz", "quiz-interactive", "exercise", "assignments", "sacko-chat", "profile-settings", "help", "subscription"].includes(
         rootSegment,
       );
     const isStudentRoute =
@@ -114,6 +114,7 @@ export default function RootLayout() {
             <Stack.Screen name="quiz" />
             <Stack.Screen name="quiz-interactive" />
             <Stack.Screen name="exercise" />
+            <Stack.Screen name="assignments" />
             <Stack.Screen name="+not-found" />
           </Stack>
         )}

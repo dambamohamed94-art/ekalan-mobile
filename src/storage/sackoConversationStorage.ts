@@ -55,3 +55,11 @@ export async function saveSackoConversation(
     // La conversation reste utilisable en mémoire si le stockage est indisponible.
   }
 }
+
+export async function clearSackoConversation() {
+  try {
+    await AsyncStorage.removeItem(SACKO_CONVERSATION_KEY);
+  } catch {
+    // La déconnexion doit continuer même si le stockage local est indisponible.
+  }
+}

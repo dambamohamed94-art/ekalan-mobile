@@ -37,3 +37,25 @@ test("refuse un contexte pédagogique incomplet", () => {
     /INVALID_SACKO_PAYLOAD/,
   );
 });
+
+test("refuse une question dépassant la limite mobile", () => {
+  assert.throws(
+    () => buildSackoTutorPayload("a".repeat(2001), context, 2),
+    /INVALID_SACKO_PAYLOAD/,
+  );
+});
+
+test("borne et sérialise les données facultatives", () => {
+  const payload = buildSackoTutorPayload("Question", {
+    ...context,
+    scene_index: 99_999,
+    question_id: "q".repeat(250),
+    student_answer: { answer: "A" },
+    result: "correct".repeat(10),
+  });
+
+  assert.equal(payload.scene_index, 10_000);
+  assert.equal(payload.question_id?.length, 190);
+  assert.equal(payload.student_answer, '{"answer":"A"}');
+  assert.equal(payload.result?.length, 30);
+});

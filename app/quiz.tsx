@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   comparable,
+  hasOfficialQuestionId,
   NormalizedQuiz,
   normalizeQuiz,
 } from "../src/quiz/quizAdapter";
@@ -28,6 +29,7 @@ import {
   getStudentChapter,
   getStudentLessonExercise,
   getStudentLessonQuiz,
+  markLessonSceneCompleted,
 } from "../src/services/learningService";
 import {
   answerStudentQuiz,
@@ -96,23 +98,19 @@ function submittedAnswer(
 ): unknown {
   if (question.type === "choice") return interaction.choice;
   if (question.type === "pair") {
-    return Object.fromEntries(
-      question.pairs.map((pair, index) => {
+    return question.pairs.map((pair, index) => {
         const sourceIndex = Number(interaction.slots[`pair-${index}`]);
-        return [
-          question.pairs[sourceIndex]?.left.value ?? "",
-          pair.right.value,
-        ];
-      }),
-    );
+        return {
+          left: question.pairs[sourceIndex]?.left.value ?? "",
+          right: pair.right.value,
+        };
+      });
   }
   if (question.type === "category") {
-    return Object.fromEntries(
-      Object.entries(interaction.slots).map(([tokenIndex, categoryId]) => [
-        question.tokens[Number(tokenIndex)]?.value ?? "",
-        categoryId,
-      ]),
-    );
+    return Object.entries(interaction.slots).map(([tokenIndex, categoryId]) => ({
+      item: question.tokens[Number(tokenIndex)]?.value ?? "",
+      category: categoryId,
+    }));
   }
   if (question.type === "fill") {
     return question.blanks.map(
@@ -183,10 +181,11 @@ export default function QuizPage() {
   const [submitting, setSubmitting] = useState(false);
   const [started, setStarted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [correctAnswers, setCorrectAnswers] = useState(0);
+  const correctAnswersRef = useRef(0);
   const [sessionUuid, setSessionUuid] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<QuizAnswerResult | null>(null);
   const [completion, setCompletion] = useState<QuizCompletion | null>(null);
+  const questionStartedAt = useRef(Date.now());
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [interaction, setInteraction] =
@@ -269,7 +268,12 @@ export default function QuizPage() {
     setActionError(null);
     setSubmitting(true);
     try {
-      if (context?.lesson.id) {
+      const canUseScoredSession =
+        context?.lesson.id &&
+        mode !== "exercise" &&
+        questions.length > 0 &&
+        questions.every(hasOfficialQuestionId);
+      if (canUseScoredSession) {
         const uuid = createQuizSessionUuid();
         await startStudentQuiz({
           session_uuid: uuid,
@@ -282,6 +286,7 @@ export default function QuizPage() {
         setSessionUuid(uuid);
       }
       setStarted(true);
+      questionStartedAt.current = Date.now();
     } catch (startError: unknown) {
       setActionError(
         getErrorMessage(startError, "Impossible de démarrer ce quiz."),
@@ -305,22 +310,24 @@ export default function QuizPage() {
       if (sessionUuid) {
         const result = await answerStudentQuiz({
           session_uuid: sessionUuid,
-          question_id: String(question.id ?? `question-${currentIndex + 1}`),
-          question_type: question.type || "question",
+          question_id: normalizedQuestion?.id ?? String(question.question_id ?? question.id ?? `question-${currentIndex + 1}`),
+          question_type: normalizedQuestion?.sourceType || question.question_type || question.type || "question",
           question_index: currentIndex,
           answer,
           correct_answer: correctAnswer,
           explanation: question.explication,
           difficulty: question.level,
+          is_correct: answersMatch(answer, correctAnswer),
+          response_time_ms: Math.max(0, Date.now() - questionStartedAt.current),
         });
         setFeedback(result);
         if (result.correct) {
-          setCorrectAnswers((value) => value + 1);
+          correctAnswersRef.current += 1;
         }
       } else {
         const correct = answersMatch(answer, correctAnswer);
         if (correct) {
-          setCorrectAnswers((value) => value + 1);
+          correctAnswersRef.current += 1;
         }
         setFeedback({
           correct,
@@ -368,6 +375,7 @@ export default function QuizPage() {
         setCurrentIndex((value) => value + 1);
         setFeedback(null);
         setInteraction(EMPTY_INTERACTION);
+        questionStartedAt.current = Date.now();
       } catch (indexError: unknown) {
         setActionError(
           getErrorMessage(
@@ -387,13 +395,21 @@ export default function QuizPage() {
       if (sessionUuid) {
         setCompletion(await completeStudentQuiz(sessionUuid));
       } else {
+        if (context?.lesson.id) {
+          await markLessonSceneCompleted({
+            subject,
+            chapter,
+            lesson_id: context.lesson.id,
+            scene: mode === "exercise" ? "exercice" : "quiz",
+          });
+        }
         setCompletion({
           session_uuid: "",
           status: "completed",
           score_pct: questions.length
-            ? (correctAnswers / questions.length) * 100
+            ? (correctAnswersRef.current / questions.length) * 100
             : 0,
-          correct_answers: correctAnswers,
+          correct_answers: correctAnswersRef.current,
           answered_questions: questions.length,
           xp_earned: 0,
         });
@@ -438,10 +454,11 @@ export default function QuizPage() {
     setFeedback(null);
     setSessionUuid(null);
     setCurrentIndex(0);
-    setCorrectAnswers(0);
+    correctAnswersRef.current = 0;
     setStarted(false);
     setActionError(null);
     setInteraction(EMPTY_INTERACTION);
+    questionStartedAt.current = Date.now();
   };
 
   const selectOrPlace = (slot: string) => {
@@ -749,8 +766,11 @@ export default function QuizPage() {
 
   if (completion) {
     const total = Math.max(completion.answered_questions, questions.length);
-    const shouldRetry =
-      total > 0 && completion.correct_answers / total < 16 / 22;
+    const noteOutOf22 = Math.max(
+      0,
+      Math.min(22, Math.round((completion.score_pct / 100) * 22)),
+    );
+    const shouldRetry = noteOutOf22 < 16;
     return (
       <View style={styles.resultScreen}>
         <View style={styles.resultIcon}>
@@ -759,11 +779,20 @@ export default function QuizPage() {
         <Text style={styles.resultTitle}>
           {mode === "exercise" ? "Exercice terminé !" : "Quiz terminé !"}
         </Text>
-        <Text style={styles.resultScore}>{Math.round(completion.score_pct)}%</Text>
+        <Text style={styles.resultScore}>{noteOutOf22}/22</Text>
         <Text style={styles.resultText}>
           {completion.correct_answers} bonne(s) réponse(s) sur{" "}
           {total}
         </Text>
+        <Text style={styles.resultFeedback}>
+          {shouldRetry
+            ? "Certaines notions restent à consolider. Reprends le quiz pour progresser."
+            : "Bravo ! Le niveau attendu est atteint. Continue sur cette lancée."}
+        </Text>
+        <View style={styles.xpBadge}>
+          <MaterialIcons color="#F59E0B" name="star" size={20} />
+          <Text style={styles.xpText}>{completion.xp_earned} XP gagnés</Text>
+        </View>
         {shouldRetry ? (
           <>
             <Text style={styles.retryMessage}>
@@ -795,7 +824,7 @@ export default function QuizPage() {
         lesson={String(context?.lesson?.id ?? lessonId ?? "")}
         level={context?.student?.class_code}
         questionId={
-          started && question?.id !== undefined ? String(question.id) : undefined
+          started && normalizedQuestion ? normalizedQuestion.id : undefined
         }
         attempted={Boolean(feedback)}
         result={
@@ -1260,6 +1289,26 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   resultText: { color: "#DCE9FF", fontSize: 15, fontWeight: "700" },
+  resultFeedback: {
+    maxWidth: 350,
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    lineHeight: 22,
+    marginTop: 16,
+    textAlign: "center",
+  },
+  xpBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "#FFF7D6",
+    borderRadius: 16,
+    marginTop: 16,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+  },
+  xpText: { color: "#92400E", fontSize: 13, fontWeight: "900" },
   audioPlaceholder: {
     position: "absolute",
     right: -112,

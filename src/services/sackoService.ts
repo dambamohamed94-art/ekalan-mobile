@@ -16,6 +16,9 @@ export type SackoReply = {
   contract_version: "ai-tutor-v1" | "sacko-basic-v1";
   request_id: string;
   access_mode?: "basic" | "premium";
+  provider?: string;
+  requested_hint_level?: number;
+  help_adapted?: boolean;
 };
 
 export type SackoConfig = {
@@ -25,16 +28,17 @@ export type SackoConfig = {
   avatar?: string;
   alt?: string;
   access_mode?: "basic" | "premium";
+  provider?: string;
 };
 
 export async function getSackoConfig(): Promise<SackoConfig> {
   try {
     const response = await api.get<ApiResponse<SackoConfig>>("/ai/config");
-    return { ...getApiData(response), access_mode: "premium" };
+    return getApiData(response);
   } catch (error: unknown) {
     if (
       isAxiosError(error) &&
-      [403, 404].includes(error.response?.status ?? 0)
+      [403, 404, 500, 502, 503, 504].includes(error.response?.status ?? 0)
     ) {
       return {
         enabled: true,
@@ -63,7 +67,13 @@ type BasicLessonHelp = {
 function canUseBasicFallback(error: unknown) {
   return (
     isAxiosError(error) &&
-    [403, 404].includes(error.response?.status ?? 0)
+    [403, 404, 500, 502, 503, 504].includes(error.response?.status ?? 0)
+  );
+}
+
+function isTechnicalReply(message: string) {
+  return /exception\s+ia|route\s+inconnue|fatal\s+error|temporarily unavailable/i.test(
+    message,
   );
 }
 
@@ -118,10 +128,11 @@ export async function askSacko({
     const reply = getApiData(response);
     if (
       !reply?.message?.trim() ||
+      isTechnicalReply(reply.message) ||
       reply.contract_version !== "ai-tutor-v1" ||
       !reply.request_id
     ) {
-      throw new Error("EMPTY_SACKO_REPLY");
+      return askSackoBasic(message, context);
     }
 
     return { ...reply, access_mode: "premium" };

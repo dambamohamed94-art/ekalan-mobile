@@ -487,6 +487,7 @@ export default function InteractiveQuizPage() {
     score: number;
     total: number;
   } | null>(null);
+  const trustedQuizUrl = getTrustedQuizUrl(url);
 
   useEffect(
     () => () => {
@@ -521,6 +522,19 @@ export default function InteractiveQuizPage() {
       true;
     `);
   };
+
+  if (!trustedQuizUrl) {
+    return (
+      <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
+        <View style={styles.invalidSource}>
+          <MaterialIcons color={colors.danger} name="gpp-bad" size={42} />
+          <Text style={styles.invalidSourceTitle}>Contenu bloqué</Text>
+          <Text style={styles.invalidSourceText}>Cette source ne provient pas du domaine sécurisé EKALAN.</Text>
+          <Pressable style={styles.invalidSourceButton} onPress={() => router.back()}><Text style={styles.invalidSourceButtonText}>Retour à la leçon</Text></Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={["top", "bottom"]} style={styles.container}>
@@ -600,6 +614,8 @@ export default function InteractiveQuizPage() {
             // Les autres messages éventuels du moteur sont ignorés.
           }
         }}
+        onShouldStartLoadWithRequest={(request) => Boolean(getTrustedQuizUrl(request.url))}
+        originWhitelist={["https://ekalan.com", "https://*.ekalan.com"]}
         ref={webViewRef}
         renderLoading={() => (
           <View style={styles.loader}>
@@ -609,10 +625,10 @@ export default function InteractiveQuizPage() {
         )}
         sharedCookiesEnabled
         showsVerticalScrollIndicator
-        source={{ uri: url }}
+        source={{ uri: trustedQuizUrl }}
         startInLoadingState
         style={styles.hiddenWebview}
-        thirdPartyCookiesEnabled
+        thirdPartyCookiesEnabled={false}
       />
       <View pointerEvents="none" style={styles.generatorLoader}>
         <ActivityIndicator color={colors.primary} size="large" />
@@ -682,6 +698,18 @@ export default function InteractiveQuizPage() {
   );
 }
 
+function getTrustedQuizUrl(value: string | string[] | undefined) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (!candidate) return null;
+  try {
+    const parsed = new URL(candidate);
+    const trustedHost = parsed.hostname === "ekalan.com" || parsed.hostname.endsWith(".ekalan.com");
+    return parsed.protocol === "https:" && trustedHost ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#13064F" },
   header: {
@@ -735,6 +763,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   loaderText: { color: colors.muted, fontWeight: "800", marginTop: 12 },
+  invalidSource: { flex: 1, alignItems: "center", justifyContent: "center", padding: 26, backgroundColor: colors.background },
+  invalidSourceTitle: { marginTop: 14, color: colors.textStrong, fontSize: 24, fontWeight: "900" },
+  invalidSourceText: { maxWidth: 330, marginTop: 9, color: colors.muted, lineHeight: 21, textAlign: "center" },
+  invalidSourceButton: { marginTop: 22, paddingHorizontal: 24, paddingVertical: 14, borderRadius: 16, backgroundColor: colors.primary },
+  invalidSourceButtonText: { color: "#FFFFFF", fontWeight: "900" },
   sceneNav: {
     minHeight: 76,
     alignItems: "center",

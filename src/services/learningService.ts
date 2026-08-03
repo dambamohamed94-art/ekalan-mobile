@@ -9,6 +9,7 @@ import {
 } from "../types/learning";
 import { getStudentHome } from "./studentService";
 import { isNativeQuizScene } from "../quiz/quizAdapter";
+import { MobileSceneType, toApiSceneType } from "../api/contractAdapters";
 
 type LearningEndpoint =
   | "/student/subject"
@@ -46,19 +47,10 @@ type EngineLesson = {
   course_scenes?: LearningQuiz[];
   video_scenes?: LearningQuiz[];
   revision_scenes?: LearningQuiz[];
-};
-
-type ContentEngine = {
-  subjectsContent?: Record<
-    string,
-    {
-      chapters?: {
-        id?: string;
-        levels?: string[];
-        lessons?: EngineLesson[];
-      }[];
-    }
-  >;
+  revisions?: LearningQuiz[];
+  revision?: LearningQuiz[] | LearningQuiz;
+  fiche_revision?: LearningQuiz[] | LearningQuiz;
+  videos?: LearningQuiz[];
 };
 
 const SERVER_ORIGIN = "https://ekalan.com";
@@ -190,12 +182,17 @@ function isPlayableQuiz(quiz: LearningQuiz) {
   );
 }
 
-function engineLevel(classCode: string) {
-  const normalized = classCode.trim().toLocaleLowerCase("fr");
-  return normalized === "cm1" ? "4e" : normalized === "cm2" ? "5e" : normalized;
+function officialContentUrl(path: string) {
+  const normalized = path.trim();
+  if (!normalized) return null;
+  const url = new URL(normalized, SERVER_ORIGIN);
+  if (url.origin !== SERVER_ORIGIN) {
+    throw new Error("Chemin de contenu pédagogique invalide.");
+  }
+  return url.toString();
 }
 
-async function getEngineLessonQuiz(
+async function getOfficialLessonScenes(
   context: StudentLessonContext,
   subject: string,
   chapter: string,
@@ -203,44 +200,45 @@ async function getEngineLessonQuiz(
   lesson?: string,
   activity: "quiz" | "exercise" | "course" | "video" | "revision" = "quiz",
 ) {
-  const level = engineLevel(context.student.class_code);
-  if (!level) return { questions: [] as LearningQuiz[] };
-
-  const engineResponse = await api.get<ContentEngine>(
-    `${SERVER_ORIGIN}/data/content.engine.${encodeURIComponent(level)}.json`,
-  );
-  const subjectData = engineResponse.data.subjectsContent?.[subject];
-  const chapterData = subjectData?.chapters?.find(
-    (candidate) => String(candidate.id ?? "") === String(chapter).trim(),
-  );
-  const requestedIndex = Math.max(0, Number.parseInt(index || "0", 10) || 0);
   const requestedLesson = String(lesson ?? context.lesson.id ?? "");
-  const lessonData =
-    chapterData?.lessons?.find(
-      (candidate) =>
-        requestedLesson !== "" &&
-        String(candidate.id ?? "") === requestedLesson,
-    ) ?? chapterData?.lessons?.[requestedIndex];
-
-  if (!lessonData) return { questions: [] as LearningQuiz[] };
-
-  let contentLesson = lessonData;
-  if (lessonData.content_file) {
-    const contentUrl = new URL(lessonData.content_file, SERVER_ORIGIN).toString();
-    const contentResponse = await api.get<EngineLesson>(contentUrl);
-    contentLesson = contentResponse.data;
+  let contentLesson: EngineLesson = {};
+  if (requestedLesson) {
+    const contentResponse = await api.get<ApiResponse<EngineLesson>>(
+      "/student/lesson-content",
+      {
+        params: {
+          subject,
+          chapter,
+          lesson: requestedLesson,
+        },
+      },
+    );
+    contentLesson = getApiData(contentResponse);
+  } else {
+    const contentUrl = officialContentUrl(context.lesson.content_file ?? "");
+    if (contentUrl) {
+      const contentResponse = await api.get<EngineLesson>(contentUrl);
+      contentLesson = contentResponse.data;
+    }
   }
 
   const sceneMap = {
     quiz: contentLesson.quiz_scenes,
     exercise: contentLesson.exercise_scenes,
     course: contentLesson.course_scenes,
-    video: contentLesson.video_scenes,
-    revision: contentLesson.revision_scenes,
+    video: contentLesson.video_scenes ?? contentLesson.videos,
+    revision:
+      contentLesson.revision_scenes ??
+      contentLesson.revisions ??
+      contentLesson.revision ??
+      contentLesson.fiche_revision,
   };
-  const activityScenes = Array.isArray(sceneMap[activity])
-    ? sceneMap[activity] ?? []
-    : [];
+  const rawScenes = sceneMap[activity];
+  const activityScenes = Array.isArray(rawScenes)
+    ? rawScenes
+    : rawScenes == null
+      ? []
+      : [rawScenes];
   const questions =
     activity === "quiz" || activity === "exercise"
       ? activityScenes.filter(isNativeQuizScene)
@@ -279,15 +277,22 @@ export async function getStudentLessonSceneContent(
   activity: "course" | "video" | "revision",
 ) {
   const context = await getStudentLessonContext(subject, chapter, index, lesson);
-  const engine = await getEngineLessonQuiz(
-    context,
-    subject,
-    chapter,
-    index,
-    lesson,
-    activity,
-  );
-  return { context, content: engine.questions };
+  try {
+    const engine = await getOfficialLessonScenes(
+      context,
+      subject,
+      chapter,
+      index,
+      lesson,
+      activity,
+    );
+    return { context, content: engine.questions };
+  } catch {
+    // Le contexte API contient déjà les fiches pédagogiques. Une ressource
+    // externe absente ou temporairement inaccessible ne doit pas masquer la
+    // révision, le cours ou la vidéo disponibles côté backend.
+    return { context, content: [] };
+  }
 }
 
 export async function getStudentLessonExercise(
@@ -297,7 +302,7 @@ export async function getStudentLessonExercise(
   lesson?: string,
 ) {
   const context = await getStudentLessonContext(subject, chapter, index, lesson);
-  const engine = await getEngineLessonQuiz(
+  const engine = await getOfficialLessonScenes(
     context,
     subject,
     chapter,
@@ -332,7 +337,7 @@ export async function getStudentLessonQuiz(
   );
 
   try {
-    const engineQuiz = await getEngineLessonQuiz(
+    const engineQuiz = await getOfficialLessonScenes(
       context,
       subject,
       chapter,
@@ -392,7 +397,7 @@ export async function getStudentLessonQuiz(
   let externalQuizUrl: string | undefined;
   if (!questions.length) {
     try {
-      const engineQuiz = await getEngineLessonQuiz(
+      const engineQuiz = await getOfficialLessonScenes(
         context,
         subject,
         chapter,
@@ -490,9 +495,51 @@ export async function markLessonAsDone(data: {
     subject_progress_pct: number;
   }>>("/student/progress", {
     ...data,
-    type: "lesson",
+    event_type: "lesson:completed",
     status: "done",
   });
 
+  return getApiData(response);
+}
+
+export async function markLessonSceneOpened(data: {
+  subject: string;
+  chapter: string;
+  lesson_id: number | string;
+  scene: MobileSceneType;
+}) {
+  const response = await api.post<ApiResponse<{
+    message: string;
+    status: "in_progress" | "done";
+    scene_progress?: Record<string, unknown> | null;
+  }>>("/student/progress", {
+    subject: data.subject,
+    chapter: data.chapter,
+    lesson_id: data.lesson_id,
+    current_tab: toApiSceneType(data.scene),
+    event_type: "scene:opened",
+    status: "in_progress",
+  });
+  return getApiData(response);
+}
+
+export async function markLessonSceneCompleted(data: {
+  subject: string;
+  chapter: string;
+  lesson_id: number | string;
+  scene: MobileSceneType;
+}) {
+  const response = await api.post<ApiResponse<{
+    message: string;
+    status: "in_progress" | "done";
+    scene_progress?: Record<string, unknown> | null;
+  }>>("/student/progress", {
+    subject: data.subject,
+    chapter: data.chapter,
+    lesson_id: data.lesson_id,
+    current_tab: toApiSceneType(data.scene),
+    event_type: "scene:completed",
+    status: "in_progress",
+  });
   return getApiData(response);
 }

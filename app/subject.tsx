@@ -1,3 +1,4 @@
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -69,6 +70,7 @@ export default function SubjectPage() {
       </View>
     );
   }
+  const accent = getSubjectAccent(subject);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -84,13 +86,14 @@ export default function SubjectPage() {
         <BrandLogo style={styles.logo} />
       </View>
 
-      <View style={styles.hero}>
-        <Text style={styles.emoji}>📚</Text>
+      <View style={[styles.hero, { backgroundColor: accent }]}>
+        <View style={styles.heroDecorOne} /><View style={styles.heroDecorTwo} />
+        <View style={styles.heroIcon}><MaterialIcons name={getSubjectIcon(subject)} size={58} color="#FFFFFF" /></View>
         <Text style={styles.title}>{subjectData?.name}</Text>
-        <Text style={styles.subtitle}>
+        <View style={styles.countBadge}><Text style={styles.subtitle}>
           {subjectData?.counts?.chapters || 0} chapitres ·{" "}
           {subjectData?.counts?.lessons || 0} leçons
-        </Text>
+        </Text></View>
       </View>
 
       <Text style={styles.sectionTitle}>Chapitres</Text>
@@ -119,7 +122,7 @@ export default function SubjectPage() {
             })
           }
         >
-          <View style={styles.chapterNumber}>
+          <View style={[styles.chapterNumber, { backgroundColor: `${accent}16` }]}>
             <Text style={styles.chapterNumberText}>{index + 1}</Text>
           </View>
 
@@ -136,12 +139,25 @@ export default function SubjectPage() {
             </View>
           </View>
 
-          <Text style={styles.arrow}>›</Text>
+          <View style={[styles.chapterVisual, { backgroundColor: `${accent}12` }]}><MaterialIcons name={getChapterIcon(index)} size={38} color={accent} /></View>
+          <View style={[styles.arrowCircle, { backgroundColor: `${accent}12` }]}><MaterialIcons name="chevron-right" size={25} color={accent} /></View>
         </Pressable>
       ))}
     </ScrollView>
   );
 }
+
+function getSubjectAccent(subject: string) {
+  const key = subject.toLowerCase();
+  if (key.includes("fran")) return "#F97316";
+  if (key.includes("anglais")) return "#3563E9";
+  if (key.includes("histoire") || key.includes("geo")) return "#16A34A";
+  if (key.includes("science") || key.includes("phys")) return "#0891B2";
+  if (key.includes("civ") || key.includes("moral")) return "#D97706";
+  return colors.primary;
+}
+function getSubjectIcon(subject: string): React.ComponentProps<typeof MaterialIcons>["name"] { const key=subject.toLowerCase(); if(key.includes("math")) return "calculate"; if(key.includes("fran")) return "history-edu"; if(key.includes("anglais")) return "translate"; if(key.includes("histoire")||key.includes("geo")) return "public"; if(key.includes("science")) return "science"; return "school"; }
+function getChapterIcon(index: number): React.ComponentProps<typeof MaterialIcons>["name"] { return (["pin","architecture","straighten","bar-chart","menu-book"] as const)[index % 5]; }
 
 const styles = StyleSheet.create({
   container: {
@@ -188,9 +204,9 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
   },
-  emoji: {
-    fontSize: 52,
-  },
+  heroDecorOne: { position: "absolute", right: -35, top: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(255,255,255,0.08)" },
+  heroDecorTwo: { position: "absolute", left: -45, bottom: -70, width: 190, height: 190, borderRadius: 95, backgroundColor: "rgba(0,0,0,0.08)" },
+  heroIcon: { width: 94, height: 82, alignItems: "center", justifyContent: "center", borderRadius: 25, backgroundColor: "rgba(255,255,255,0.13)" },
   title: {
     marginTop: 10,
     color: "#FFFFFF",
@@ -198,8 +214,8 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     textAlign: "center",
   },
+  countBadge: { marginTop: 14, paddingHorizontal: 18, paddingVertical: 9, borderRadius: 22, backgroundColor: "rgba(255,255,255,0.17)" },
   subtitle: {
-    marginTop: 8,
     color: "#DDEBFF",
     fontWeight: "800",
   },
@@ -217,10 +233,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    shadowColor: "#E5CDB7",
+    shadowColor: colors.primaryDark,
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.9,
-    shadowRadius: 0,
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
     elevation: 5,
   },
   chapterNumber: {
@@ -255,9 +271,6 @@ const styles = StyleSheet.create({
     color: "#475569",
     fontWeight: "800",
   },
-  arrow: {
-    fontSize: 36,
-    color: colors.primary,
-    fontWeight: "900",
-  },
+  chapterVisual: { width: 58, height: 58, alignItems: "center", justifyContent: "center", borderRadius: 18 },
+  arrowCircle: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 21 },
 });

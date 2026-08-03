@@ -22,6 +22,8 @@ export type LearningResource = {
 };
 
 export type LearningQuiz = LearningResource & {
+  question_id?: string | number;
+  question_type?: string;
   scene_type?: string;
   type?: string;
   level?: string;
@@ -69,6 +71,7 @@ export type LearningLesson = {
   objectifs: PedagogicalContent[];
   fiche_cours: PedagogicalContent | null;
   content: PedagogicalContent;
+  content_file?: string | null;
   activites_interactives: PedagogicalContent[];
   quiz_interactifs: LearningQuiz[];
   quiz?: LearningQuiz[];
@@ -81,6 +84,7 @@ export type LearningChapter = {
   id: string;
   title: string;
   description: string;
+  section?: string;
   competences: PedagogicalContent[];
   lessons: LearningLesson[];
   fiches?: LearningResource[];
