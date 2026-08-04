@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { BrandLogo } from "../components/brand-logo";
 import { DataState } from "../components/data-state";
 import { getErrorMessage } from "../src/api/errorMessage";
@@ -30,7 +30,11 @@ export default function ChapterPage() {
   const lessons = chapterData?.lessons ?? [];
   const accent = getAccent(subject);
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <FlatList
+      contentContainerStyle={styles.content}
+      data={lessons}
+      keyExtractor={(lesson, index) => String(lesson.id || index)}
+      ListHeaderComponent={<>
       <View style={styles.header}>
         <Pressable accessibilityLabel="Retour à la matière" accessibilityRole="button" onPress={() => goBackOrReplace({ pathname: "/subject", params: { subject } })} style={styles.backButton}>
           <MaterialIcons name="arrow-back" size={26} color={colors.primary} />
@@ -54,9 +58,10 @@ export default function ChapterPage() {
 
       <Text style={styles.sectionTitle}>Leçons</Text>
       {!lessons.length ? <DataState title="Chapitre vide" message="Les leçons apparaîtront ici dès leur publication." onRetry={() => setReloadKey(v => v + 1)} /> : null}
-      {lessons.map((lesson: any, index: number) => {
+      </>}
+      renderItem={({ item: lesson, index }) => {
         const progress = getProgress(lesson);
-        return <Pressable key={lesson.id || index} accessibilityLabel={`Ouvrir la leçon ${lesson.title || index + 1}`} accessibilityRole="button" style={styles.itemCard} onPress={() => router.push({ pathname: "/lesson", params: { subject, chapter, index: String(index), lesson: String(lesson.id ?? "") } })}>
+        return <Pressable accessibilityLabel={`Ouvrir la leçon ${lesson.title || index + 1}`} accessibilityRole="button" style={styles.itemCard} onPress={() => router.push({ pathname: "/lesson", params: { subject, chapter, index: String(index), lesson: String(lesson.id ?? "") } })}>
           <View style={[styles.itemVisual, { backgroundColor: `${accent}14` }]}><MaterialIcons name={getLessonIcon(index)} size={37} color={accent} /></View>
           <View style={styles.numberBadge}><Text style={[styles.numberText, { color: accent }]}>{index + 1}</Text></View>
           <View style={styles.itemContent}>
@@ -65,8 +70,12 @@ export default function ChapterPage() {
           </View>
           <View style={[styles.arrowCircle, { backgroundColor: `${accent}12` }]}><MaterialIcons name="chevron-right" size={27} color={accent} /></View>
         </Pressable>;
-      })}
-    </ScrollView>
+      }}
+      removeClippedSubviews
+      showsVerticalScrollIndicator={false}
+      style={styles.container}
+      windowSize={7}
+    />
   );
 }
 

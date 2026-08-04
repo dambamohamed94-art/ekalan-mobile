@@ -1,6 +1,6 @@
 import { Redirect } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { PremiumSplash } from "../components/premium-splash";
 import { hasSeenOnboarding } from "../src/storage/onboardingStorage";
 
 export default function Index() {
@@ -9,7 +9,11 @@ export default function Index() {
 
   useEffect(() => {
     const loadOnboardingState = async () => {
-      setOnboardingSeen(await hasSeenOnboarding());
+      const [seen] = await Promise.all([
+        hasSeenOnboarding(),
+        new Promise((resolve) => setTimeout(resolve, 1350)),
+      ]);
+      setOnboardingSeen(seen);
       setLoading(false);
     };
 
@@ -17,11 +21,7 @@ export default function Index() {
   }, []);
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+    return <PremiumSplash />;
   }
 
   return <Redirect href={onboardingSeen ? "/login" : "/onboarding"} />;

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Pressable,
-    ScrollView,
+    FlatList,
     StyleSheet,
     Text,
     View,
@@ -72,8 +72,14 @@ export default function SubjectPage() {
   }
   const accent = getSubjectAccent(subject);
 
+  const chapters: Chapter[] = subjectData?.chapters ?? [];
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <FlatList
+      contentContainerStyle={styles.content}
+      data={chapters}
+      keyExtractor={(chapter, index) => String(chapter.id || index)}
+      ListHeaderComponent={<>
       <View style={styles.header}>
         <Pressable
           accessibilityLabel="Retour aux matières"
@@ -98,19 +104,18 @@ export default function SubjectPage() {
 
       <Text style={styles.sectionTitle}>Chapitres</Text>
 
-      {!subjectData?.chapters?.length ? (
+      {!chapters.length ? (
         <DataState
           title="Aucun chapitre disponible"
           message="Les chapitres de cette matière apparaîtront ici dès leur publication."
           onRetry={() => setReloadKey((value) => value + 1)}
         />
       ) : null}
-
-      {subjectData?.chapters?.map((chapter: Chapter, index: number) => (
+      </>}
+      renderItem={({ item: chapter, index }) => (
         <Pressable
           accessibilityLabel={`Ouvrir le chapitre ${chapter.title}`}
           accessibilityRole="button"
-          key={chapter.id || index}
           style={styles.chapterCard}
           onPress={() =>
             router.push({
@@ -142,8 +147,12 @@ export default function SubjectPage() {
           <View style={[styles.chapterVisual, { backgroundColor: `${accent}12` }]}><MaterialIcons name={getChapterIcon(index)} size={38} color={accent} /></View>
           <View style={[styles.arrowCircle, { backgroundColor: `${accent}12` }]}><MaterialIcons name="chevron-right" size={25} color={accent} /></View>
         </Pressable>
-      ))}
-    </ScrollView>
+      )}
+      removeClippedSubviews
+      showsVerticalScrollIndicator={false}
+      style={styles.container}
+      windowSize={7}
+    />
   );
 }
 

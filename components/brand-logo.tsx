@@ -1,4 +1,5 @@
-import { Image, ImageStyle, StyleProp, StyleSheet } from "react-native";
+import { Image } from "expo-image";
+import { ImageStyle, StyleProp, StyleSheet } from "react-native";
 
 type BrandLogoProps = {
   size?: number;
@@ -10,8 +11,8 @@ export function BrandLogo({ size = 58, style }: BrandLogoProps) {
     <Image
       accessibilityLabel="Logo EKALAN"
       accessibilityRole="image"
-      resizeMode="contain"
-      source={require("../assets/images/logo_mobile.png")}
+      contentFit="contain"
+      source={require("../assets/images/ekalan-logo-official.svg")}
       style={[styles.image, { width: size, height: size }, style]}
     />
   );
