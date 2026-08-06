@@ -65,6 +65,7 @@ export type StudentDashboard = {
   recent_activity?: {
     type?: string;
     subject_key?: string;
+    chapter_id?: string;
     lesson_id?: string;
     status?: string;
     score_pct?: number;

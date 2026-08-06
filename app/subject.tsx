@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     ActivityIndicator,
+    ImageBackground,
     Pressable,
     FlatList,
     StyleSheet,
@@ -73,6 +74,8 @@ export default function SubjectPage() {
   const accent = getSubjectAccent(subject);
 
   const chapters: Chapter[] = subjectData?.chapters ?? [];
+  const subjectProgress = chapters.length ? Math.round(chapters.reduce((sum, item) => sum + getProgress(item), 0) / chapters.length) : 0;
+  const completedChapters = chapters.filter((item) => getProgress(item) >= 100).length;
 
   return (
     <FlatList
@@ -80,6 +83,7 @@ export default function SubjectPage() {
       data={chapters}
       keyExtractor={(chapter, index) => String(chapter.id || index)}
       ListHeaderComponent={<>
+      <ImageBackground source={require("../assets/images/dashboard-student-bg.webp")} resizeMode="cover" style={styles.premiumHeader} imageStyle={styles.premiumHeaderImage}>
       <View style={styles.header}>
         <Pressable
           accessibilityLabel="Retour aux matières"
@@ -92,7 +96,7 @@ export default function SubjectPage() {
         <BrandLogo style={styles.logo} />
       </View>
 
-      <View style={[styles.hero, { backgroundColor: accent }]}>
+      <View style={[styles.hero, { backgroundColor: accent }]}> 
         <View style={styles.heroDecorOne} /><View style={styles.heroDecorTwo} />
         <View style={styles.heroIcon}><MaterialIcons name={getSubjectIcon(subject)} size={58} color="#FFFFFF" /></View>
         <Text style={styles.title}>{subjectData?.name}</Text>
@@ -100,6 +104,13 @@ export default function SubjectPage() {
           {subjectData?.counts?.chapters || 0} chapitres ·{" "}
           {subjectData?.counts?.lessons || 0} leçons
         </Text></View>
+      </View>
+      </ImageBackground>
+
+      <View style={styles.progressCard}>
+        <Text style={styles.progressCardTitle}>Progression dans la matière</Text>
+        <View style={styles.progressRow}><View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${subjectProgress}%`, backgroundColor: accent }]} /></View><Text style={[styles.progressValue, { color: accent }]}>{subjectProgress}%</Text></View>
+        <Text style={styles.progressMeta}><Text style={{ color: accent }}>{completedChapters}</Text> / {chapters.length} chapitres terminés</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Chapitres</Text>
@@ -134,18 +145,16 @@ export default function SubjectPage() {
           <View style={{ flex: 1 }}>
             <Text style={styles.chapterTitle}>{chapter.title}</Text>
             <Text style={styles.chapterDescription}>
-              {chapter.description || "Leçons, exercices et quiz"}
+              {chapter.description || `${chapter.lessons?.length || 0} leçons`}
             </Text>
 
             <View style={styles.metaRow}>
-              <Text style={styles.meta}>📘 {chapter.lessons?.length || 0}</Text>
-              <Text style={styles.meta}>🎯 {chapter.quiz?.length || 0}</Text>
-              <Text style={styles.meta}>✍️ {chapter.exos?.length || 0}</Text>
+              <View style={styles.chapterTrack}><View style={[styles.chapterFill, { width: `${getProgress(chapter)}%`, backgroundColor: accent }]} /></View>
+              <Text style={[styles.meta, { color: accent }]}>{getProgress(chapter)}%</Text>
             </View>
           </View>
 
-          <View style={[styles.chapterVisual, { backgroundColor: `${accent}12` }]}><MaterialIcons name={getChapterIcon(index)} size={38} color={accent} /></View>
-          <View style={[styles.arrowCircle, { backgroundColor: `${accent}12` }]}><MaterialIcons name="chevron-right" size={25} color={accent} /></View>
+          <View style={[styles.arrowCircle, { backgroundColor: `${accent}12` }]}><MaterialIcons name={getProgress(chapter) >= 100 ? "check" : getProgress(chapter) <= 0 && index > 0 ? "lock-outline" : "chevron-right"} size={25} color={getProgress(chapter) <= 0 && index > 0 ? "#64748B" : accent} /></View>
         </Pressable>
       )}
       removeClippedSubviews
@@ -166,7 +175,7 @@ function getSubjectAccent(subject: string) {
   return colors.primary;
 }
 function getSubjectIcon(subject: string): React.ComponentProps<typeof MaterialIcons>["name"] { const key=subject.toLowerCase(); if(key.includes("math")) return "calculate"; if(key.includes("fran")) return "history-edu"; if(key.includes("anglais")) return "translate"; if(key.includes("histoire")||key.includes("geo")) return "public"; if(key.includes("science")) return "science"; return "school"; }
-function getChapterIcon(index: number): React.ComponentProps<typeof MaterialIcons>["name"] { return (["pin","architecture","straighten","bar-chart","menu-book"] as const)[index % 5]; }
+function getProgress(value: any) { const raw = value?.progress_percent ?? value?.progress ?? value?.completion_percentage ?? 0; const number = Number(raw); return Number.isFinite(number) ? Math.max(0, Math.min(100, Math.round(number))) : 0; }
 
 const styles = StyleSheet.create({
   container: {
@@ -193,6 +202,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  premiumHeader: { marginHorizontal: -22, marginTop: -22, paddingHorizontal: 22, paddingBottom: 28, minHeight: 320 },
+  premiumHeaderImage: { borderBottomLeftRadius: 34, borderBottomRightRadius: 34 },
   back: {
     fontSize: 50,
     color: "#4B5563",
@@ -213,6 +224,13 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: "center",
   },
+  progressCard: { backgroundColor: "#FFFFFF", borderRadius: 26, marginTop: -30, padding: 20, elevation: 5 },
+  progressCardTitle: { color: "#0B1F4D", fontSize: 20, fontWeight: "900" },
+  progressRow: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 18 },
+  progressTrack: { flex: 1, height: 10, borderRadius: 6, backgroundColor: "#E8ECF4", overflow: "hidden" },
+  progressFill: { height: "100%", borderRadius: 6 },
+  progressValue: { fontSize: 20, fontWeight: "900" },
+  progressMeta: { color: "#64748B", fontSize: 15, fontWeight: "800", marginTop: 14 },
   heroDecorOne: { position: "absolute", right: -35, top: -30, width: 150, height: 150, borderRadius: 75, backgroundColor: "rgba(255,255,255,0.08)" },
   heroDecorTwo: { position: "absolute", left: -45, bottom: -70, width: 190, height: 190, borderRadius: 95, backgroundColor: "rgba(0,0,0,0.08)" },
   heroIcon: { width: 94, height: 82, alignItems: "center", justifyContent: "center", borderRadius: 25, backgroundColor: "rgba(255,255,255,0.13)" },
@@ -273,9 +291,12 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 12,
     marginTop: 10,
   },
+  chapterTrack: { flex: 1, height: 7, borderRadius: 5, backgroundColor: "#E7EBF2", overflow: "hidden" },
+  chapterFill: { height: "100%", borderRadius: 5 },
   meta: {
     color: "#475569",
     fontWeight: "800",

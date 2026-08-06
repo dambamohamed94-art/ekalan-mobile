@@ -1,16 +1,16 @@
 import { Picker } from "@react-native-picker/picker";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { ErrorMessage } from "../components/error-message";
-import { BrandLogo } from "../components/brand-logo";
+import { AuthFieldLabel, AuthPage, AuthStepHeader } from "../components/auth-premium";
 import { getErrorMessage } from "../src/api/errorMessage";
 import { goBackOrReplace } from "../src/navigation/goBackOrReplace";
 import { registerParent } from "../src/services/authService";
@@ -133,28 +133,17 @@ export default function RegisterParent() {
   };
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardDismissMode="on-drag"
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel={step === 1 ? "Retour" : "Étape précédente"}
-          accessibilityRole="button"
-          onPress={() =>
-            step === 1 ? goBackOrReplace("/role-selection") : setStep(1)
-          }
-          style={styles.backButton}
-        >
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <BrandLogo style={styles.logo} />
+    <AuthPage bottomPadding={280}>
+      <AuthStepHeader onBack={() => step === 1 ? goBackOrReplace("/role-selection") : setStep(1)} step={step} total={2} />
+      <View style={styles.emojiBox}>
+        <Image
+          contentFit="contain"
+          source={step === 1
+            ? require("../assets/images/auth-group-clean.png")
+            : require("../assets/images/auth-role-student-clean.png")}
+          style={styles.roleImage}
+        />
       </View>
-
-      <Text style={styles.emoji}>{step === 1 ? "👨‍👩‍👧" : "🎒"}</Text>
       <Text style={styles.title}>
         {step === 1 ? "Créer un compte parent" : "Inscrire mon enfant"}
       </Text>
@@ -164,32 +153,27 @@ export default function RegisterParent() {
           : "Ces informations permettront à l’équipe E-KALAN de valider le compte sous 24h."}
       </Text>
 
-      <View style={styles.progressTrack}>
-        <View style={[styles.progressFill, { width: step === 1 ? "50%" : "100%" }]} />
-      </View>
-      <Text style={styles.progressText}>Étape {step}/2</Text>
-
       <ErrorMessage message={error} />
 
       <View style={styles.card}>
         {step === 1 ? (
           <>
-            <Text style={styles.label}>Prénom du parent</Text>
+            <AuthFieldLabel icon="person-outline">Prénom du parent</AuthFieldLabel>
             <TextInput accessibilityLabel="Prénom du parent" style={styles.input} value={parentFirstName} onChangeText={setParentFirstName} placeholder="Ex: Mariam" autoComplete="given-name" />
 
-            <Text style={styles.label}>Nom du parent</Text>
+            <AuthFieldLabel icon="badge">Nom du parent</AuthFieldLabel>
             <TextInput accessibilityLabel="Nom du parent" style={styles.input} value={parentLastName} onChangeText={setParentLastName} placeholder="Ex: Camara" autoComplete="family-name" />
 
-            <Text style={styles.label}>Email du parent</Text>
+            <AuthFieldLabel icon="mail-outline">Email du parent</AuthFieldLabel>
             <TextInput accessibilityLabel="Email du parent" style={styles.input} value={parentEmail} onChangeText={setParentEmail} placeholder="parent@email.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" autoCorrect={false} textContentType="emailAddress" />
 
-            <Text style={styles.label}>Numéro WhatsApp / téléphone</Text>
+            <AuthFieldLabel icon="phone">Numéro WhatsApp / téléphone</AuthFieldLabel>
             <TextInput accessibilityLabel="Numéro WhatsApp ou téléphone" style={styles.input} value={parentPhone} onChangeText={setParentPhone} placeholder="+223..." keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" />
 
-            <Text style={styles.label}>Mot de passe</Text>
+            <AuthFieldLabel icon="lock-outline">Mot de passe</AuthFieldLabel>
             <TextInput accessibilityLabel="Mot de passe" style={styles.input} value={password} onChangeText={setPassword} placeholder="Minimum 8 caractères" secureTextEntry autoComplete="new-password" textContentType="newPassword" />
 
-            <Text style={styles.label}>Confirmer le mot de passe</Text>
+            <AuthFieldLabel icon="verified-user">Confirmer le mot de passe</AuthFieldLabel>
             <TextInput accessibilityLabel="Confirmer le mot de passe" style={styles.input} value={passwordConfirmation} onChangeText={setPasswordConfirmation} placeholder="Saisissez à nouveau le mot de passe" secureTextEntry autoComplete="new-password" returnKeyType="done" textContentType="newPassword" />
 
             <Pressable
@@ -203,19 +187,20 @@ export default function RegisterParent() {
           </>
         ) : (
           <>
-            <Text style={styles.label}>Prénom de l’enfant</Text>
+            <AuthFieldLabel icon="child-care">Prénom de l’enfant</AuthFieldLabel>
             <TextInput accessibilityLabel="Prénom de l’enfant" style={styles.input} value={childFirstName} onChangeText={setChildFirstName} placeholder="Ex: Ali" />
 
-            <Text style={styles.label}>Nom de l’enfant</Text>
+            <AuthFieldLabel icon="badge">Nom de l’enfant</AuthFieldLabel>
             <TextInput accessibilityLabel="Nom de l’enfant" style={styles.input} value={childLastName} onChangeText={setChildLastName} placeholder="Ex: Diallo" />
 
-            <Text style={styles.label}>Établissement de l’enfant</Text>
+            <AuthFieldLabel icon="school">Établissement de l’enfant</AuthFieldLabel>
             <TextInput accessibilityLabel="Établissement de l’enfant" style={styles.input} value={childSchoolName} onChangeText={setChildSchoolName} placeholder="Nom de l’école" />
 
-            <Text style={styles.label}>Classe de l’enfant</Text>
+            <AuthFieldLabel icon="class">Classe de l’enfant</AuthFieldLabel>
             <View style={styles.pickerBox}>
               <Picker
                 accessibilityLabel="Classe de l’enfant"
+                style={styles.picker}
                 selectedValue={childClassName}
                 onValueChange={(value) => setChildClassName(value)}
               >
@@ -251,7 +236,7 @@ export default function RegisterParent() {
           </>
         )}
       </View>
-    </ScrollView>
+    </AuthPage>
   );
 }
 
@@ -276,14 +261,11 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
   },
-  emoji: {
-    textAlign: "center",
-    fontSize: 54,
-    marginTop: 34,
-  },
+  emojiBox: { width: 78, height: 78, borderRadius: 39, alignSelf: "center", alignItems: "center", justifyContent: "center", backgroundColor: "#EAF2FF", marginTop: 4, overflow: "hidden" },
+  roleImage: { width: 70, height: 70 },
   title: {
     marginTop: 12,
-    fontSize: 30,
+    fontSize: 27,
     lineHeight: 36,
     fontWeight: "900",
     textAlign: "center",
@@ -319,7 +301,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 28,
     padding: 22,
-    shadowColor: "#B8C7DD",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#94A3B8",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.45,
     shadowRadius: 18,
@@ -332,7 +316,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#D9E3F0",
     borderRadius: 18,
     padding: 16,
     fontSize: 16,
@@ -356,6 +342,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
   },
+  picker: { height: 56 },
   buttonDisabled: {
     opacity: 0.6,
   },

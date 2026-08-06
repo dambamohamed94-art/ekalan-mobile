@@ -1,15 +1,15 @@
 import { router } from "expo-router";
+import { Image } from "expo-image";
 import { useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { ErrorMessage } from "../components/error-message";
-import { BrandLogo } from "../components/brand-logo";
+import { AuthFieldLabel, AuthPage, AuthStepHeader } from "../components/auth-premium";
 import { getErrorMessage } from "../src/api/errorMessage";
 import { goBackOrReplace } from "../src/navigation/goBackOrReplace";
 import { registerTeacher } from "../src/services/authService";
@@ -86,26 +86,11 @@ export default function RegisterTeacher() {
   };
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardDismissMode="on-drag"
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel="Retour"
-          accessibilityRole="button"
-          onPress={() => goBackOrReplace("/role-selection")}
-          style={styles.backButton}
-        >
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <BrandLogo style={styles.logo} />
+    <AuthPage bottomPadding={280}>
+      <AuthStepHeader onBack={() => goBackOrReplace("/role-selection")} step={1} total={1} />
+      <View style={styles.emojiBox}>
+        <Image contentFit="contain" source={require("../assets/images/auth-role-teacher-clean.png")} style={styles.roleImage} />
       </View>
-
-      <Text style={styles.emoji}>👨‍🏫</Text>
       <Text style={styles.title}>Créer un compte enseignant</Text>
       <Text style={styles.subtitle}>
         Présentez votre profil pour accompagner les élèves sur E-KALAN.
@@ -114,7 +99,7 @@ export default function RegisterTeacher() {
       <ErrorMessage message={error} />
 
       <View style={styles.card}>
-        <Text style={styles.label}>Prénom *</Text>
+        <AuthFieldLabel icon="person-outline">Prénom *</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Prénom"
           style={styles.input}
@@ -124,7 +109,7 @@ export default function RegisterTeacher() {
           autoComplete="given-name"
         />
 
-        <Text style={styles.label}>Nom *</Text>
+        <AuthFieldLabel icon="badge">Nom *</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Nom"
           style={styles.input}
@@ -134,7 +119,7 @@ export default function RegisterTeacher() {
           autoComplete="family-name"
         />
 
-        <Text style={styles.label}>Email *</Text>
+        <AuthFieldLabel icon="mail-outline">Email *</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Email"
           style={styles.input}
@@ -146,7 +131,7 @@ export default function RegisterTeacher() {
           autoComplete="email"
         />
 
-        <Text style={styles.label}>Mot de passe *</Text>
+        <AuthFieldLabel icon="lock-outline">Mot de passe *</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Mot de passe"
           style={styles.input}
@@ -157,7 +142,7 @@ export default function RegisterTeacher() {
           autoComplete="new-password"
         />
 
-        <Text style={styles.label}>Confirmer le mot de passe *</Text>
+        <AuthFieldLabel icon="verified-user">Confirmer le mot de passe *</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Confirmer le mot de passe"
           style={styles.input}
@@ -170,7 +155,7 @@ export default function RegisterTeacher() {
           textContentType="newPassword"
         />
 
-        <Text style={styles.label}>WhatsApp / téléphone</Text>
+        <AuthFieldLabel icon="phone">WhatsApp / téléphone</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Numéro WhatsApp ou téléphone"
           style={styles.input}
@@ -181,7 +166,7 @@ export default function RegisterTeacher() {
           autoComplete="tel"
         />
 
-        <Text style={styles.label}>Ville</Text>
+        <AuthFieldLabel icon="location-city">Ville</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Ville"
           style={styles.input}
@@ -190,7 +175,7 @@ export default function RegisterTeacher() {
           placeholder="Ex: Conakry"
         />
 
-        <Text style={styles.label}>Diplôme</Text>
+        <AuthFieldLabel icon="school">Diplôme</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Diplôme"
           style={styles.input}
@@ -199,7 +184,7 @@ export default function RegisterTeacher() {
           placeholder="Ex: Master en mathématiques"
         />
 
-        <Text style={styles.label}>Présentation</Text>
+        <AuthFieldLabel icon="description">Présentation</AuthFieldLabel>
         <TextInput
           accessibilityLabel="Présentation"
           style={[styles.input, styles.bioInput]}
@@ -225,7 +210,7 @@ export default function RegisterTeacher() {
           </Text>
         </Pressable>
       </View>
-    </ScrollView>
+    </AuthPage>
   );
 }
 
@@ -256,14 +241,11 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
   },
-  emoji: {
-    marginTop: 34,
-    textAlign: "center",
-    fontSize: 54,
-  },
+  emojiBox: { width: 78, height: 78, borderRadius: 39, alignSelf: "center", alignItems: "center", justifyContent: "center", backgroundColor: "#EAF2FF", marginTop: 4, overflow: "hidden" },
+  roleImage: { width: 70, height: 70 },
   title: {
     marginTop: 12,
-    fontSize: 30,
+    fontSize: 27,
     lineHeight: 36,
     fontWeight: "900",
     textAlign: "center",
@@ -281,7 +263,9 @@ const styles = StyleSheet.create({
     padding: 22,
     borderRadius: 28,
     backgroundColor: "#FFFFFF",
-    shadowColor: "#B8C7DD",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#94A3B8",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.45,
     shadowRadius: 18,
@@ -297,7 +281,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     padding: 16,
     borderRadius: 18,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#D9E3F0",
     fontSize: 16,
   },
   bioInput: {

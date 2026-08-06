@@ -1,6 +1,6 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { BrandLogo } from "../components/brand-logo";
 import { DataState } from "../components/data-state";
@@ -16,13 +16,14 @@ export default function ChapterPage() {
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    void reloadKey;
     setLoading(true); setError(null);
     getStudentChapter(subject, chapter)
       .then(setChapterData)
       .catch((err: unknown) => setError(getErrorMessage(err, "Impossible de charger ce chapitre.")))
       .finally(() => setLoading(false));
-  }, [subject, chapter, reloadKey]);
+  }, [subject, chapter, reloadKey]));
 
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /><Text style={styles.loadingText}>Chargement du chapitre...</Text></View>;
   if (error) return <View style={styles.center}><DataState title="Chargement impossible" message={error} onRetry={() => setReloadKey(v => v + 1)} /></View>;
@@ -68,7 +69,7 @@ export default function ChapterPage() {
             <Text style={styles.itemTitle}>{lesson.title}</Text><Text style={styles.itemMeta}>Leçon {index + 1}</Text>
             <View style={styles.itemProgressRow}><View style={styles.itemTrack}><View style={[styles.itemFill, { width: `${progress}%`, backgroundColor: accent }]} /></View><Text style={[styles.progressText, { color: accent }]}>{progress}%</Text></View>
           </View>
-          <View style={[styles.arrowCircle, { backgroundColor: `${accent}12` }]}><MaterialIcons name="chevron-right" size={27} color={accent} /></View>
+          <View style={[styles.arrowCircle, { backgroundColor: `${accent}12` }]}><MaterialIcons name={progress >= 100 ? "check-circle" : progress <= 0 && index > 0 ? "lock-outline" : "chevron-right"} size={27} color={progress <= 0 && index > 0 ? "#7C8AA5" : accent} /></View>
         </Pressable>;
       }}
       removeClippedSubviews
@@ -79,7 +80,7 @@ export default function ChapterPage() {
   );
 }
 
-function getProgress(value: any) { const raw = value?.progress_percent ?? value?.progress ?? value?.completion_percentage ?? 0; const n = Number(raw); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0; }
+function getProgress(value: any) { const raw = value?.progress_pct ?? value?.progress_percent ?? value?.progress ?? value?.completion_percentage ?? 0; const n = Number(raw); return Number.isFinite(n) ? Math.max(0, Math.min(100, Math.round(n))) : 0; }
 function getAccent(subject: string) { const key = String(subject).toLowerCase(); if (key.includes("fran")) return "#F97316"; if (key.includes("anglais")) return "#3563E9"; if (key.includes("histoire") || key.includes("geo")) return "#16A34A"; if (key.includes("science")) return "#0891B2"; return colors.primary; }
 function getChapterIcon(subject: string): React.ComponentProps<typeof MaterialIcons>["name"] { return String(subject).toLowerCase().includes("math") ? "calculate" : "menu-book"; }
 function getLessonIcon(index: number): React.ComponentProps<typeof MaterialIcons>["name"] { return (["auto-stories", "filter-2", "checklist", "add-circle", "calculate"] as const)[index % 5]; }

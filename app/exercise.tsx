@@ -93,7 +93,13 @@ export default function ExercisePage() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      bouncesZoom
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      maximumZoomScale={3}
+      minimumZoomScale={1}
+    >
       <View style={styles.header}>
         <Pressable
           accessibilityLabel="Retour au chapitre"

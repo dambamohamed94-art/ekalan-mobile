@@ -1,21 +1,20 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+  AuthButton,
+  AuthCard,
+  AuthField,
+  AuthHeader,
+  AuthPage,
+} from "../components/auth-premium";
 import { ErrorMessage } from "../components/error-message";
-import { BrandLogo } from "../components/brand-logo";
 import { getErrorMessage } from "../src/api/errorMessage";
 import { goBackOrReplace } from "../src/navigation/goBackOrReplace";
 import { login } from "../src/services/authService";
-import { colors } from "../src/theme/colors";
+import { premiumColors } from "../src/theme/premium";
 import { isValidEmail } from "../src/utils/formValidation";
 
 export default function Login() {
@@ -23,21 +22,14 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const handleBack = () => {
-    goBackOrReplace("/onboarding");
-  };
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const handleLogin = async () => {
-    if (submitting) {
-      return;
-    }
-
+    if (submitting) return;
     if (!email.trim() || !password) {
       setError("Renseignez votre email et votre mot de passe.");
       return;
     }
-
     if (!isValidEmail(email)) {
       setError("Saisissez une adresse email valide.");
       return;
@@ -45,206 +37,128 @@ export default function Login() {
 
     setError(null);
     setSubmitting(true);
-
     try {
       await login(email.trim(), password);
       router.replace("/(tabs)/subjects");
     } catch (err: unknown) {
-      setError(
-        getErrorMessage(
-          err,
-          "Connexion impossible. Vérifiez vos identifiants.",
-        ),
-      );
+      setError(getErrorMessage(err, "Connexion impossible. Vérifiez vos identifiants."));
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.keyboardView}
-    >
-      <ScrollView
-        automaticallyAdjustKeyboardInsets
-        contentContainerStyle={styles.container}
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-      >
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel="Retour"
-          accessibilityRole="button"
-          onPress={handleBack}
-          style={styles.backButton}
-        >
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
+    <AuthPage>
+      <AuthHeader compact onBack={() => goBackOrReplace("/onboarding")} />
 
-        <BrandLogo style={styles.logo} />
+      <View style={styles.hero}>
+        <View style={styles.heroCopy}>
+          <Text style={styles.title}>Bienvenue !</Text>
+          <Text style={styles.subtitle}>Connecte-toi pour continuer l’aventure avec EKALAN.</Text>
+        </View>
+        <Image
+          source={require("../assets/images/auth-character.webp")}
+          contentFit="contain"
+          style={styles.character}
+        />
       </View>
 
-      <View style={styles.card}>
-        <Text style={styles.title}>Connecte-toi</Text>
-
+      <AuthCard>
         <ErrorMessage message={error} />
-
-        <Text style={styles.label}>Email</Text>
-        <TextInput
-          accessibilityLabel="Email"
-          style={styles.input}
-          placeholder="ton@email.com"
-          value={email}
-          onChangeText={setEmail}
+        <AuthField
+          accessibilityLabel="Adresse e-mail"
           autoCapitalize="none"
           autoComplete="email"
           autoCorrect={false}
+          icon="mail-outline"
           keyboardType="email-address"
+          label="Adresse e-mail"
+          onChangeText={setEmail}
+          placeholder="Entre ton adresse e-mail"
           returnKeyType="next"
           textContentType="emailAddress"
+          value={email}
         />
-
-        <View style={styles.row}>
-          <Text style={styles.label}>Mot de passe</Text>
-          <Text style={styles.forgot}>J’ai oublié 😅</Text>
-        </View>
-
-        <TextInput
+        <AuthField
           accessibilityLabel="Mot de passe"
-          style={styles.input}
-          placeholder="••••••••"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
           autoComplete="current-password"
+          icon={passwordVisible ? "lock-open" : "lock-outline"}
+          label="Mot de passe"
+          onChangeText={setPassword}
           onSubmitEditing={handleLogin}
+          placeholder="Entre ton mot de passe"
           returnKeyType="go"
+          secureTextEntry={!passwordVisible}
           textContentType="password"
+          value={password}
         />
-
-         <Pressable
-              accessibilityLabel={
-                submitting ? "Connexion en cours" : "Se connecter"
-              }
-              accessibilityRole="button"
-              accessibilityState={{ disabled: submitting, busy: submitting }}
-              disabled={submitting}
-              style={[styles.button, submitting && styles.buttonDisabled]}
-              onPress={handleLogin}
-            >
-            <Text style={styles.buttonText}>
-              {submitting ? "Connexion..." : "Je me connecte"}
-            </Text>
-          </Pressable>
-      </View>
-
-      <Text style={styles.register}>
-        Tu n’as pas de compte ?{" "}
-        <Text
-          style={{ color: colors.primary, fontWeight: "800" }}
-          onPress={() => router.push("/role-selection")}
+        <Pressable
+          accessibilityLabel={passwordVisible ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+          accessibilityRole="button"
+          onPress={() => setPasswordVisible((current) => !current)}
+          style={styles.visibilityButton}
         >
-          Inscris-toi ici !
-        </Text>
-      </Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <MaterialIcons
+            color={premiumColors.blue800}
+            name={passwordVisible ? "visibility-off" : "visibility"}
+            size={20}
+          />
+          <Text style={styles.visibilityText}>{passwordVisible ? "Masquer" : "Afficher"}</Text>
+        </Pressable>
+        <Pressable onPress={() => router.push("/forgot-password")}>
+          <Text style={styles.forgot}>Mot de passe oublié ?</Text>
+        </Pressable>
+        <AuthButton accent="green" disabled={submitting} onPress={handleLogin}>
+          {submitting ? "Connexion..." : "Se connecter"}
+        </AuthButton>
+
+        <View style={styles.registerBox}>
+          <View style={styles.registerIcon}>
+            <MaterialIcons color={premiumColors.violet500} name="groups" size={26} />
+          </View>
+          <View style={styles.registerCopy}>
+            <Text style={styles.registerTitle}>Pas encore de compte ?</Text>
+            <Text style={styles.registerText}>Rejoins les élèves qui apprennent avec EKALAN.</Text>
+          </View>
+          <Pressable onPress={() => router.push("/role-selection")} style={styles.registerButton}>
+            <Text style={styles.registerButtonText}>Créer</Text>
+            <MaterialIcons color={premiumColors.violet500} name="chevron-right" size={22} />
+          </Pressable>
+        </View>
+      </AuthCard>
+
+      <View style={styles.security}>
+        <MaterialIcons color={premiumColors.blue800} name="verified-user" size={20} />
+        <Text style={styles.securityText}>Tes données sont sécurisées et protégées</Text>
+      </View>
+    </AuthPage>
   );
 }
 
 const styles = StyleSheet.create({
-  keyboardView: {
-    flex: 1,
-  },
-  container: {
-    flexGrow: 1,
-    backgroundColor: "#F7F1EC",
-    paddingHorizontal: 20,
-  },
-  header: {
-    marginTop: 60,
+  hero: { minHeight: 190, flexDirection: "row", alignItems: "center", marginTop: 4 },
+  heroCopy: { flex: 1, paddingLeft: 6, zIndex: 2 },
+  title: { color: premiumColors.blue950, fontSize: 31, fontWeight: "900" },
+  subtitle: { color: premiumColors.blue900, fontSize: 16, lineHeight: 23, marginTop: 8 },
+  character: { width: 190, height: 205, marginLeft: -28 },
+  visibilityButton: { flexDirection: "row", gap: 5, alignSelf: "flex-end", marginTop: -6, marginBottom: 6 },
+  visibilityText: { color: premiumColors.blue800, fontSize: 12, fontWeight: "800" },
+  forgot: { color: premiumColors.green600, fontWeight: "800", textAlign: "right", marginBottom: 10 },
+  registerBox: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 10,
+    marginTop: 20,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: "#F5F1FF",
   },
-  backButton: {
-    position: "absolute",
-    left: 0,
-    padding: 8,
-  },
-  back: {
-    fontSize: 44,
-    color: "#444",
-  },
-  logo: {
-    width: 58,
-    height: 58,
-  },
-  card: {
-    marginTop: 60,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 30,
-    padding: 24,
-    shadowColor: "#D8C3B5",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 1,
-    shadowRadius: 0,
-    elevation: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "900",
-    marginBottom: 22,
-    textAlign: "center",
-    color: "#444",
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: "#666",
-    fontWeight: "700",
-  },
-  input: {
-    backgroundColor: "#EFE8E3",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
-    fontSize: 16,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  forgot: {
-    color: "#999",
-    fontWeight: "700",
-  },
-  button: {
-    backgroundColor: colors.primary,
-    borderRadius: 22,
-    paddingVertical: 18,
-    alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#0B2556",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 0,
-    elevation: 6,
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "900",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  register: {
-    marginTop: 40,
-    textAlign: "center",
-    fontSize: 16,
-    color: "#666",
-  },
+  registerIcon: { width: 44, height: 44, borderRadius: 14, backgroundColor: "#EAE1FF", alignItems: "center", justifyContent: "center" },
+  registerCopy: { flex: 1 },
+  registerTitle: { color: premiumColors.blue950, fontWeight: "900" },
+  registerText: { color: "#475569", fontSize: 12, lineHeight: 17, marginTop: 2 },
+  registerButton: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#D9C9FF", borderRadius: 13, paddingVertical: 8, paddingLeft: 10, paddingRight: 5 },
+  registerButtonText: { color: premiumColors.violet500, fontWeight: "900" },
+  security: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 24 },
+  securityText: { color: premiumColors.blue900, fontSize: 13, fontWeight: "700" },
 });

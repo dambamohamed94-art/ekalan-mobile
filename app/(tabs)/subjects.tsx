@@ -1,10 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import { Redirect, router } from "expo-router";
+import { Image } from "expo-image";
 import { ComponentProps, useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  ImageBackground,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -200,11 +202,10 @@ export default function Subjects() {
 
   return (
     <FlatList
-      columnWrapperStyle={styles.subjectRow}
       contentContainerStyle={styles.content}
       data={subjects}
       keyExtractor={(item) => item.key}
-      numColumns={2}
+      numColumns={1}
       ListEmptyComponent={
         <DataState
           message="Tes matières apparaîtront ici dès qu’elles seront disponibles pour ta classe."
@@ -214,37 +215,27 @@ export default function Subjects() {
       }
       ListHeaderComponent={
         <>
-          <View
-            style={[
-              styles.hero,
-              isCompact && styles.heroCompact,
-            ]}
-          >
-            <View style={styles.heroCircleLarge} />
-            <View style={styles.heroCircleSmall} />
-
-            <View style={styles.heroRow}>
-              <View style={styles.greetingBlock}>
-                <Text style={styles.eyebrow}>ESPACE ÉLÈVE</Text>
-                <Text
-                  numberOfLines={2}
-                  style={[
-                    styles.greeting,
-                    isCompact && styles.greetingCompact,
-                  ]}
-                >
-                  {getGreeting()}{" "}
-                  {home?.student.first_name || user.first_name || "élève"}
-                </Text>
-              </View>
-
-              <View style={styles.classBadge}>
-                <Text style={styles.classLabel}>Classe</Text>
-                <Text numberOfLines={2} style={styles.className}>
-                  {home?.student.class_name || user.class_name || "À confirmer"}
-                </Text>
-              </View>
+          <ImageBackground source={require("../../assets/images/dashboard-student-bg.webp")} resizeMode="cover" style={[styles.hero, isCompact && styles.heroCompact]} imageStyle={styles.heroBackground}>
+            <View style={styles.brandRow}>
+              <MaterialIcons color={colors.primaryDark} name="menu" size={27} />
+              <Image contentFit="contain" source={require("../../assets/images/ekalan-logo-official.svg")} style={styles.brandLogo} />
+              <MaterialIcons color={colors.primaryDark} name="notifications-none" size={27} />
             </View>
+            <View style={styles.studentHeroRow}>
+              <Image contentFit="contain" source={require("../../assets/images/dashboard-student-character.svg")} style={styles.studentCharacter} />
+              <View style={styles.greetingBlock}>
+                <Text style={styles.heroHello}>{getGreeting()}</Text>
+                <Text numberOfLines={1} style={[styles.greeting, isCompact && styles.greetingCompact]}>{home?.student.first_name || user.first_name || "élève"} !</Text>
+                <Text style={styles.classInline}>Classe : {home?.student.class_name || user.class_name || "À confirmer"}</Text>
+              </View>
+              <Image contentFit="contain" source={require("../../assets/images/dashboard-student-cameleon.svg")} style={styles.cameleonCharacter} />
+            </View>
+          </ImageBackground>
+
+          <View style={styles.studentStats}>
+            <StudentStat icon="trending-up" label="Progression" value={`${progress}%`} />
+            <StudentStat icon="menu-book" label="Matières" value={String(subjects.length)} />
+            <StudentStat icon="task-alt" label="Terminées" value={String(completedSubjects)} />
           </View>
 
           <Pressable
@@ -415,6 +406,18 @@ export default function Subjects() {
   );
 }
 
+function StudentStat({ icon, label, value }: { icon: IconName; label: string; value: string }) {
+  return (
+    <View style={styles.studentStat}>
+      <Text style={styles.studentStatLabel}>{label}</Text>
+      <View style={styles.studentStatValueRow}>
+        <MaterialIcons color="#FFC928" name={icon} size={21} />
+        <Text style={styles.studentStatValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -438,13 +441,26 @@ const styles = StyleSheet.create({
   hero: {
     minHeight: 245,
     overflow: "hidden",
-    backgroundColor: colors.primary,
+    backgroundColor: "#EAF5FF",
     borderBottomLeftRadius: 38,
     borderBottomRightRadius: 38,
     paddingHorizontal: 24,
     paddingTop: 54,
     paddingBottom: 74,
   },
+  heroBackground: { borderBottomLeftRadius: 38, borderBottomRightRadius: 38 },
+  brandRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  brandLogo: { width: 126, height: 48 },
+  studentHeroRow: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 },
+  studentCharacter: { width: 88, height: 122 },
+  cameleonCharacter: { width: 96, height: 112 },
+  heroHello: { color: colors.textStrong, fontSize: 16, fontWeight: "800" },
+  classInline: { color: colors.secondary, fontSize: 12, fontWeight: "900", marginTop: 5 },
+  studentStats: { flexDirection: "row", backgroundColor: colors.primaryDark, borderRadius: 20, marginHorizontal: 16, marginTop: -18, overflow: "hidden", elevation: 7 },
+  studentStat: { flex: 1, alignItems: "center", borderRightColor: "rgba(255,255,255,0.15)", borderRightWidth: 1, paddingVertical: 12 },
+  studentStatLabel: { color: "#DCE9FF", fontSize: 10, fontWeight: "700" },
+  studentStatValueRow: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 3 },
+  studentStatValue: { color: "#FFFFFF", fontSize: 15, fontWeight: "900" },
   heroCompact: {
     paddingHorizontal: 18,
   },
@@ -482,8 +498,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   greeting: {
-    color: colors.surface,
-    fontSize: 33,
+    color: colors.primaryDark,
+    fontSize: 25,
     fontWeight: "900",
     lineHeight: 40,
     marginTop: 7,
@@ -670,8 +686,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   subjectCard: {
-    flexBasis: "48%",
-    flexGrow: 0,
+    width: "auto",
+    flexGrow: 1,
     minWidth: 0,
     minHeight: 286,
     overflow: "hidden",
@@ -679,6 +695,7 @@ const styles = StyleSheet.create({
     borderColor: "#E6EAF0",
     borderRadius: 24,
     borderWidth: 1,
+    marginHorizontal: 16,
     marginTop: 14,
     shadowColor: colors.primaryDark,
     shadowOffset: { width: 0, height: 10 },

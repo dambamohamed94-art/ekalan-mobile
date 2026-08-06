@@ -85,6 +85,15 @@ export async function login(email: string, password: string): Promise<User> {
   return user;
 }
 
+export async function requestPasswordReset(email: string) {
+  const response = await api.post<ApiResponse<{ message: string }>>(
+    "/auth/forgot-password",
+    { email },
+  );
+
+  return getApiData(response);
+}
+
 export async function logout() {
   try {
     await api.post("/auth/logout");

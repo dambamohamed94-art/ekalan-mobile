@@ -1,7 +1,7 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Image } from "expo-image";
-import { router, useLocalSearchParams } from "expo-router";
-import { ComponentProps, useEffect, useMemo, useState } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { ComponentProps, useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { DataState } from "../components/data-state";
+import { BrandLogo } from "../components/brand-logo";
 import { ErrorMessage } from "../components/error-message";
 import { SackoContextButton } from "../components/sacko-context-button";
 import { getErrorMessage } from "../src/api/errorMessage";
@@ -88,7 +89,9 @@ export default function LessonPage() {
   const [showCompleted, setShowCompleted] = useState(false);
   const lesson = context?.lesson;
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
+    // La clé force une nouvelle requête depuis l'action « Réessayer ».
+    void reloadKey;
     let active = true;
     setLoading(true);
     setLoadError(null);
@@ -102,12 +105,14 @@ export default function LessonPage() {
     return () => {
       active = false;
     };
-  }, [chapter, index, lessonId, reloadKey, subject]);
+  }, [chapter, index, lessonId, reloadKey, subject]));
 
   const scenes = useMemo(() => buildScenes(), []);
 
   const openScene = (scene: Scene) => {
-    const currentLessonIndex = String(lesson?.index ?? index ?? "0");
+    // L'index de route est zéro-based. `lesson.index` peut être un numéro
+    // d'affichage un-based et ne doit pas être envoyé aux scènes.
+    const currentLessonIndex = String(index ?? "0");
     const currentLessonId = String(lesson?.id ?? lessonId ?? "");
 
     if (scene.type === "quiz") {
@@ -184,73 +189,46 @@ export default function LessonPage() {
         style={styles.backButton}
       >
         <MaterialIcons color={colors.primary} name="arrow-back" size={25} />
-        <Text style={styles.backText}>Chapitre</Text>
       </Pressable>
+      <BrandLogo style={styles.topLogo} />
 
       <View style={styles.hero}>
-        <View style={styles.heroGlow} />
+        <View pointerEvents="none" style={styles.heroGlow} />
         <View style={styles.heroCopy}>
           <Text style={styles.eyebrow}>LEÇON {(Number(lesson?.index) || 0) + 1} SUR {lesson?.total || 1}</Text>
           <Text style={styles.title}>{lesson?.title || "Leçon"}</Text>
-          {lesson?.summary ? <Text style={styles.summary}>{lesson.summary}</Text> : null}
-          <View style={styles.heroProgress}><View style={[styles.heroProgressFill, { width: `${getLessonProgress(lesson)}%` }]} /></View>
-          <Text style={styles.heroProgressText}>{getLessonProgress(lesson)}% terminé</Text>
         </View>
-        <Image contentFit="contain" source={require("../assets/images/sacko-student-mascot.png")} style={styles.mascot} />
+        <Image
+          contentFit="contain"
+          pointerEvents="none"
+          source={require("../assets/images/dashboard-student-character.svg")}
+          style={styles.mascot}
+        />
+        <View style={styles.sceneMenu}>
+          {scenes.map((scene) => <Pressable key={`menu-${scene.type}`} onPress={() => openScene(scene)} style={styles.sceneMenuItem}><Text style={styles.sceneMenuText}>{scene.title}</Text></Pressable>)}
+        </View>
       </View>
 
-      <SackoContextButton
-        chapter={chapter}
-        lesson={String(lesson?.id ?? lessonId ?? "")}
-        level={context?.student?.class_code}
-        subject={subject}
-      />
-
-      <View style={styles.headingRow}>
-        <View>
-          <Text style={styles.sectionEyebrow}>PARCOURS PÉDAGOGIQUE</Text>
-          <Text style={styles.sectionTitle}>Scènes pédagogiques</Text>
+      <View style={styles.lessonProgressCard}>
+        <Text style={styles.lessonProgressTitle}>Ma progression</Text>
+        <View style={styles.lessonProgressRow}><View style={styles.lessonTrack}><View style={[styles.lessonFill, { width: `${getLessonProgress(context)}%` }]} /></View><Text style={styles.lessonProgressValue}>{getLessonProgress(context)}%</Text></View>
+        <View style={styles.rewardRow}>
+          <Reward icon="star" color="#F59E0B" label="XP gagnée" value={getLessonProgress(context) >= 100 ? "+80 XP" : "À gagner"} />
+          <Reward icon="track-changes" color="#7C3AED" label="Score Quiz" value={lesson?.quiz_score != null ? `${lesson.quiz_score}/10` : "—"} />
+          <Reward icon="task-alt" color="#F97316" label="Exercices" value={String(lesson?.exercise_score ?? lesson?.exercises_completed ?? "—")} />
         </View>
-        <Text style={styles.sceneCount}>{scenes.length}</Text>
       </View>
+
+      <View style={styles.objectiveCard}><View style={{ flex: 1 }}><Text style={styles.objectiveTitle}>Objectif de la leçon</Text><Text style={styles.objectiveText}>{lesson?.summary || lesson?.objective || "Comprendre et maîtriser les notions essentielles de cette leçon."}</Text></View><MaterialIcons color="#6D28D9" name="track-changes" size={55} /></View>
+
+      <SackoContextButton chapter={chapter} lesson={String(lesson?.id ?? lessonId ?? "")} level={context?.student?.class_code} subject={subject} />
 
       {scenes.length === 0 ? (
         <DataState
           message="Les contenus de cette leçon seront affichés dès leur publication."
           title="Aucune scène disponible"
         />
-      ) : (
-        <View style={styles.sceneGrid}>
-        {scenes.map((scene) => (
-          <Pressable
-            accessibilityLabel={`Ouvrir ${scene.title}`}
-            accessibilityHint={
-              scene.type === "quiz"
-                ? "Ouvre le quiz associé à cette leçon"
-                : `Ouvre le contenu ${scene.title}`
-            }
-            accessibilityRole="button"
-            key={`${scene.type}-${scene.index ?? 0}`}
-            onPress={() => openScene(scene)}
-            style={({ pressed }) => [
-              styles.sceneCard,
-              pressed && styles.sceneCardPressed,
-            ]}
-          >
-            <View style={[styles.sceneIcon, { backgroundColor: `${scene.color}18` }]}>
-              <MaterialIcons color={scene.color} name={scene.icon} size={39} />
-            </View>
-            <View style={styles.sceneCopy}>
-              <Text style={styles.sceneTitle}>{scene.title}</Text>
-              <Text style={styles.sceneSubtitle}>{scene.subtitle}</Text>
-            </View>
-            <View style={styles.status}>
-              <Text style={styles.statusText}>À faire</Text>
-            </View>
-          </Pressable>
-        ))}
-        </View>
-      )}
+      ) : null}
 
       <ErrorMessage message={actionError} />
       <Pressable
@@ -259,11 +237,20 @@ export default function LessonPage() {
         onPress={async () => {
           setActionError(null);
           try {
-            await markLessonAsDone({
+            const progress = await markLessonAsDone({
               subject,
               chapter,
               lesson_id: lesson?.id,
             });
+            setContext((current: any) => current ? ({
+              ...current,
+              lesson_progress_pct: progress.lesson_progress_pct,
+              lesson: {
+                ...current.lesson,
+                completed: true,
+                progress_pct: progress.lesson_progress_pct,
+              },
+            }) : current);
             setShowCompleted(true);
             setTimeout(() => {
               setShowCompleted(false);
@@ -300,8 +287,24 @@ export default function LessonPage() {
   );
 }
 
-function getLessonProgress(lesson: any) {
-  const raw = lesson?.progress_percent ?? lesson?.progress ?? lesson?.completion_percentage ?? 0;
+function Reward({ icon, color, label, value }: { icon: IconName; color: string; label: string; value: string }) {
+  return <View style={styles.reward}><MaterialIcons color={color} name={icon} size={27} /><Text style={styles.rewardLabel}>{label}</Text><Text style={[styles.rewardValue, { color }]}>{value}</Text></View>;
+}
+
+function getLessonProgress(context: any) {
+  const lesson = context?.lesson ?? {};
+  const raw =
+    lesson.progress_pct ??
+    lesson.progress_percent ??
+    lesson.progress_percentage ??
+    lesson.completion_percentage ??
+    lesson.progress ??
+    context?.lesson_progress_pct ??
+    context?.progress_pct ??
+    context?.progress_percent ??
+    context?.progress?.lesson_progress_pct ??
+    context?.progress?.progress_pct ??
+    (lesson.completed || lesson.is_completed ? 100 : 0);
   const value = Number(raw);
   return Number.isFinite(value) ? Math.max(0, Math.min(100, Math.round(value))) : 0;
 }
@@ -318,7 +321,9 @@ const styles = StyleSheet.create({
   },
   loadingText: { color: colors.muted, fontWeight: "800", marginTop: 12 },
   backButton: {
-    alignSelf: "flex-start",
+    position: "absolute",
+    left: 20,
+    top: 18,
     flexDirection: "row",
     alignItems: "center",
     gap: 7,
@@ -326,12 +331,13 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     paddingVertical: 8,
   },
+  topLogo: { width: 132, height: 52, alignSelf: "center", marginBottom: 18 },
   backText: { color: colors.primary, fontSize: 16, fontWeight: "900" },
   hero: {
-    backgroundColor: colors.primary,
+    backgroundColor: "#0B8F3B",
     borderRadius: 30,
     padding: 24,
-    minHeight: 260,
+    minHeight: 275,
     flexDirection: "row",
     alignItems: "center",
     overflow: "hidden",
@@ -345,6 +351,22 @@ const styles = StyleSheet.create({
   heroProgress: { width: "88%", height: 8, borderRadius: 5, backgroundColor: "rgba(255,255,255,.22)", marginTop: 19, overflow: "hidden" },
   heroProgressFill: { height: "100%", borderRadius: 5, backgroundColor: "#4ADE80" },
   heroProgressText: { color: "#86EFAC", fontSize: 12, fontWeight: "900", marginTop: 7 },
+  sceneMenu: { position: "absolute", left: 18, right: 18, bottom: 18, flexDirection: "row", gap: 5, zIndex: 5 },
+  sceneMenuItem: { flex: 1, minHeight: 31, alignItems: "center", justifyContent: "center", borderColor: "rgba(255,255,255,.65)", borderRadius: 15, borderWidth: 1, backgroundColor: "rgba(5,69,31,.36)", paddingHorizontal: 3 },
+  sceneMenuText: { color: "#FFFFFF", fontSize: 10, fontWeight: "800" },
+  lessonProgressCard: { backgroundColor: "#FFFFFF", borderRadius: 24, marginTop: -4, padding: 18, elevation: 5 },
+  lessonProgressTitle: { color: "#0B1F4D", fontSize: 17, fontWeight: "900" },
+  lessonProgressRow: { flexDirection: "row", alignItems: "center", gap: 14, marginTop: 14 },
+  lessonTrack: { flex: 1, height: 10, borderRadius: 6, backgroundColor: "#E6EAF2", overflow: "hidden" },
+  lessonFill: { height: "100%", borderRadius: 6, backgroundColor: "#39A844" },
+  lessonProgressValue: { color: "#15933A", fontSize: 18, fontWeight: "900" },
+  rewardRow: { flexDirection: "row", borderTopColor: "#E6EAF2", borderTopWidth: 1, marginTop: 16, paddingTop: 14 },
+  reward: { flex: 1, alignItems: "center", borderRightColor: "#E6EAF2", borderRightWidth: 1 },
+  rewardLabel: { color: "#475569", fontSize: 9, fontWeight: "700", marginTop: 4 },
+  rewardValue: { fontSize: 11, fontWeight: "900", marginTop: 3 },
+  objectiveCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: "#EFF9EC", borderRadius: 22, marginTop: 20, padding: 17 },
+  objectiveTitle: { color: "#0B1F4D", fontSize: 15, fontWeight: "900" },
+  objectiveText: { color: "#334155", fontSize: 12, lineHeight: 18, marginTop: 6 },
   headingRow: {
     flexDirection: "row",
     alignItems: "center",

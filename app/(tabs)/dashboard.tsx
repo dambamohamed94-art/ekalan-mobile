@@ -1,10 +1,12 @@
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
+import { Image as ExpoImage } from "expo-image";
 import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  ImageBackground,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -165,19 +167,28 @@ export default function Dashboard() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}
     >
-      <View style={[styles.hero, Boolean(selectedStudentId) && user?.role === "teacher" && styles.heroCompact]}>
-        <View style={styles.heroGlow} />
+      <ImageBackground
+        source={user?.role === "parent" ? require("../../assets/images/dashboard-parent-bg.webp") : require("../../assets/images/dashboard-teacher-bg.webp")}
+        resizeMode="cover"
+        style={[styles.hero, Boolean(selectedStudentId) && user?.role === "teacher" && styles.heroCompact]}
+        imageStyle={styles.heroImage}
+      >
         <View style={styles.heroTopRow}>
-          <View style={styles.heroIcon}><MaterialIcons name={user?.role === "teacher" ? "school" : user?.role === "parent" ? "family-restroom" : "auto-graph"} size={27} color={colors.primary} /></View>
-          <View style={styles.notificationIcon}><MaterialIcons name="notifications-none" size={24} color="#FFFFFF" /><View style={styles.notificationDot} /></View>
+          <MaterialIcons name="menu" size={27} color={colors.primaryDark} />
+          <ExpoImage contentFit="contain" source={require("../../assets/images/ekalan-logo-official.svg")} style={styles.heroLogo} />
+          <View style={styles.notificationIcon}><MaterialIcons name="notifications-none" size={24} color={colors.primaryDark} /><View style={styles.notificationDot} /></View>
         </View>
-        <Text style={styles.eyebrow}>{roleTitle}</Text>
-        <Text style={styles.title}>
-          Bonjour {user?.first_name || dashboard?.student.first_name || ""}
-        </Text>
-        {teacher ? <Text style={styles.subtitle}>{teacher.stats.students} élève(s) lié(s)</Text> : null}
-        <MaterialIcons name="school" size={94} color="rgba(255,255,255,0.20)" style={styles.heroDecoration} />
-      </View>
+        <View style={styles.roleHeroBody}>
+          <ExpoImage contentFit="contain" source={user?.role === "parent" ? require("../../assets/images/dashboard-parent-character.svg") : require("../../assets/images/dashboard-teacher-character.svg")} style={styles.roleHeroCharacter} />
+          <View style={styles.roleHeroCopy}>
+            <Text style={styles.roleHello}>Bonjour</Text>
+            <Text style={styles.title}>{user?.first_name || dashboard?.student.first_name || ""} !</Text>
+            <Text style={styles.roleBadge}>{user?.role === "teacher" ? "Professeur" : "Parent"}</Text>
+          </View>
+          <MaterialIcons name={user?.role === "teacher" ? "co-present" : "home"} size={62} color={user?.role === "teacher" ? colors.primary : "#7C3AED"} />
+        </View>
+        {teacher ? <Text style={styles.subtitle}>{teacher.stats.students} élève(s) lié(s)</Text> : <Text style={styles.subtitle}>{roleTitle}</Text>}
+      </ImageBackground>
 
       <ErrorMessage message={error} />
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
@@ -392,17 +403,24 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F7F1EC" },
   content: { padding: 16, paddingTop: 12, paddingBottom: 36 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#F7F1EC" },
-  hero: { minHeight: 270, overflow: "hidden", padding: 26, paddingTop: 68, borderRadius: 34, backgroundColor: "#09245F" },
+  hero: { minHeight: 270, overflow: "hidden", padding: 20, paddingTop: 22, borderRadius: 34, backgroundColor: "#EAF4FF" },
+  heroImage: { borderRadius: 34 },
   heroCompact: { minHeight: 210 },
   heroGlow: { position: "absolute", right: -80, bottom: -90, width: 280, height: 280, borderRadius: 140, backgroundColor: "#154DB0", opacity: 0.8 },
   heroTopRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  heroLogo: { width: 128, height: 46 },
+  roleHeroBody: { flexDirection: "row", alignItems: "center", gap: 12, marginTop: 15 },
+  roleHeroCharacter: { width: 88, height: 112 },
+  roleHeroCopy: { flex: 1 },
+  roleHello: { color: "#0F172A", fontSize: 15, fontWeight: "800" },
+  roleBadge: { color: "#1456B8", fontSize: 12, fontWeight: "900", marginTop: 5 },
   heroIcon: { width: 48, height: 48, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: "#E9F2FF" },
-  notificationIcon: { width: 46, height: 46, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: "rgba(255,255,255,0.14)" },
+  notificationIcon: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: "rgba(255,255,255,0.72)" },
   notificationDot: { position: "absolute", right: 8, top: 8, width: 7, height: 7, borderRadius: 4, backgroundColor: "#FF5C77" },
   heroDecoration: { position: "absolute", right: 20, bottom: 10, transform: [{ rotate: "-8deg" }] },
   eyebrow: { marginTop: 18, color: "#BFE0FF", fontWeight: "800" },
-  title: { marginTop: 5, color: "#FFFFFF", fontSize: 30, fontWeight: "900" },
-  subtitle: { marginTop: 14, color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  title: { marginTop: 2, color: "#0B1F4D", fontSize: 27, fontWeight: "900" },
+  subtitle: { marginTop: 4, color: "#475569", fontSize: 13, fontWeight: "700" },
   section: { marginTop: 22 },
   sectionHeadingRow: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between" },
   sectionEyebrow: { color: colors.secondary, fontSize: 11, fontWeight: "900", letterSpacing: 1.1 },

@@ -1,16 +1,16 @@
 import { Picker } from "@react-native-picker/picker";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from "react-native";
 import { ErrorMessage } from "../components/error-message";
-import { BrandLogo } from "../components/brand-logo";
+import { AuthFieldLabel, AuthPage, AuthStepHeader } from "../components/auth-premium";
 import { getErrorMessage } from "../src/api/errorMessage";
 import { goBackOrReplace } from "../src/navigation/goBackOrReplace";
 import { registerStudent } from "../src/services/authService";
@@ -128,28 +128,20 @@ export default function RegisterStudent() {
 };
 
   return (
-    <ScrollView
-      automaticallyAdjustKeyboardInsets
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      keyboardDismissMode="on-drag"
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={styles.header}>
-        <Pressable
-          accessibilityLabel={step === 1 ? "Retour" : "Étape précédente"}
-          accessibilityRole="button"
-          onPress={() =>
-            step === 1 ? goBackOrReplace("/role-selection") : setStep(1)
-          }
-          style={styles.backButton}
-        >
-          <Text style={styles.back}>‹</Text>
-        </Pressable>
-        <BrandLogo style={styles.logo} />
+    <AuthPage bottomPadding={280}>
+      <AuthStepHeader
+        accent="green"
+        onBack={() => step === 1 ? goBackOrReplace("/role-selection") : setStep(1)}
+        step={step}
+        total={2}
+      />
+      <View style={styles.emojiBox}>
+        <Image
+          contentFit="contain"
+          source={require("../assets/images/auth-role-student-clean.png")}
+          style={styles.roleImage}
+        />
       </View>
-
-      <Text style={styles.emoji}>{step === 1 ? "🎒" : "🏫"}</Text>
 
       <Text style={styles.title}>
         {step === 1 ? "Bienvenue futur champion !" : "Parle-nous de ton école"}
@@ -161,23 +153,12 @@ export default function RegisterStudent() {
           : "On adapte les cours à ta classe et ton parcours."}
       </Text>
 
-      <View style={styles.progressTrack}>
-        <View
-          style={[
-            styles.progressFill,
-            { width: step === 1 ? "50%" : "100%" },
-          ]}
-        />
-      </View>
-
-      <Text style={styles.progressText}>Étape {step}/2</Text>
-
       <ErrorMessage message={error} />
 
       <View style={styles.card}>
         {step === 1 ? (
           <>
-            <Text style={styles.label}>Prénom</Text>
+            <AuthFieldLabel accent="green" icon="person-outline">Prénom</AuthFieldLabel>
             <TextInput
               style={styles.input}
               accessibilityLabel="Prénom"
@@ -187,7 +168,7 @@ export default function RegisterStudent() {
               autoComplete="given-name"
             />
 
-            <Text style={styles.label}>Nom</Text>
+            <AuthFieldLabel accent="green" icon="badge">Nom</AuthFieldLabel>
             <TextInput
               style={styles.input}
               accessibilityLabel="Nom"
@@ -197,7 +178,7 @@ export default function RegisterStudent() {
               autoComplete="family-name"
             />
 
-            <Text style={styles.label}>Email</Text>
+            <AuthFieldLabel accent="green" icon="mail-outline">Email</AuthFieldLabel>
             <TextInput
               style={styles.input}
               accessibilityLabel="Email"
@@ -211,7 +192,7 @@ export default function RegisterStudent() {
               textContentType="emailAddress"
             />
 
-            <Text style={styles.label}>Mot de passe</Text>
+            <AuthFieldLabel accent="green" icon="lock-outline">Mot de passe</AuthFieldLabel>
             <TextInput
               style={styles.input}
               accessibilityLabel="Mot de passe"
@@ -223,7 +204,7 @@ export default function RegisterStudent() {
               textContentType="newPassword"
             />
 
-            <Text style={styles.label}>Confirmer le mot de passe</Text>
+            <AuthFieldLabel accent="green" icon="verified-user">Confirmer le mot de passe</AuthFieldLabel>
             <TextInput
               style={styles.input}
               accessibilityLabel="Confirmer le mot de passe"
@@ -247,7 +228,7 @@ export default function RegisterStudent() {
           </>
         ) : (
           <>
-            <Text style={styles.label}>Établissement</Text>
+            <AuthFieldLabel accent="green" icon="school">Établissement</AuthFieldLabel>
             <TextInput
               style={styles.input}
               accessibilityLabel="Établissement"
@@ -256,7 +237,7 @@ export default function RegisterStudent() {
               onChangeText={setSchoolName}
             />
 
-            <Text style={styles.label}>Objectif d’apprentissage</Text>
+            <AuthFieldLabel accent="green" icon="track-changes">Objectif d’apprentissage</AuthFieldLabel>
             <TextInput
               style={styles.input}
               accessibilityLabel="Objectif d’apprentissage"
@@ -265,10 +246,11 @@ export default function RegisterStudent() {
               onChangeText={setObjective}
             />
 
-            <Text style={styles.label}>Classe</Text>
+            <AuthFieldLabel accent="green" icon="class">Classe</AuthFieldLabel>
             <View style={styles.pickerBox}>
               <Picker
                 accessibilityLabel="Classe"
+                style={styles.picker}
                 selectedValue={classId}
                 onValueChange={(value) => setClassId(value)}
               >
@@ -308,19 +290,13 @@ export default function RegisterStudent() {
           </>
         )}
       </View>
-    </ScrollView>
+    </AuthPage>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F4F7FB",
-  },
-  content: {
-    padding: 22,
-    paddingBottom: 50,
-  },
+  container: { flex: 1, backgroundColor: "#F4F7FB" },
+  content: { padding: 22, paddingBottom: 50 },
   header: {
     marginTop: 42,
     alignItems: "center",
@@ -339,14 +315,11 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
   },
-  emoji: {
-    textAlign: "center",
-    fontSize: 54,
-    marginTop: 34,
-  },
+  emojiBox: { width: 78, height: 78, borderRadius: 39, alignSelf: "center", alignItems: "center", justifyContent: "center", backgroundColor: "#EAFBF0", marginTop: 4, overflow: "hidden" },
+  roleImage: { width: 70, height: 70 },
   title: {
     marginTop: 12,
-    fontSize: 30,
+    fontSize: 27,
     lineHeight: 36,
     fontWeight: "900",
     textAlign: "center",
@@ -382,7 +355,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 28,
     padding: 22,
-    shadowColor: "#B8C7DD",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#94A3B8",
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.45,
     shadowRadius: 18,
@@ -395,7 +370,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#D9E3F0",
     borderRadius: 18,
     padding: 16,
     fontSize: 16,
@@ -408,7 +385,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: "#13A63B",
     borderRadius: 22,
     paddingVertical: 18,
     alignItems: "center",
@@ -419,6 +396,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "900",
   },
+  picker: { height: 56 },
   buttonDisabled: {
     opacity: 0.6,
   },

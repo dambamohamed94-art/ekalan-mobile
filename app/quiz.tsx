@@ -22,6 +22,7 @@ import {
 } from "react-native";
 import { DataState } from "../components/data-state";
 import { ErrorMessage } from "../components/error-message";
+import { LessonSceneKey, LessonSceneTabs } from "../components/lesson-scene-tabs";
 import { SackoContextButton } from "../components/sacko-context-button";
 import { getErrorMessage } from "../src/api/errorMessage";
 import { goBackOrReplace } from "../src/navigation/goBackOrReplace";
@@ -811,12 +812,37 @@ export default function QuizPage() {
     );
   }
 
+  const openScene = (nextScene: LessonSceneKey) => {
+    const params = {
+      subject,
+      chapter,
+      lessonIndex: lessonIndex ?? "0",
+      lesson: String(context?.lesson?.id ?? lessonId ?? ""),
+    };
+    if (nextScene === "quiz" || nextScene === "exercise") {
+      router.replace({ pathname: "/quiz", params: { ...params, mode: nextScene === "quiz" ? "quiz" : "exercise" } });
+      return;
+    }
+    router.replace({ pathname: "/scene", params: { ...params, scene: nextScene } });
+  };
+
   return (
-    <ScrollView contentContainerStyle={styles.content} style={styles.container}>
+    <ScrollView
+      bouncesZoom
+      contentContainerStyle={styles.content}
+      maximumZoomScale={3}
+      minimumZoomScale={1}
+      style={styles.container}
+    >
       <Pressable onPress={returnToContext} style={styles.backButton}>
         <MaterialIcons color={colors.primary} name="arrow-back" size={24} />
         <Text style={styles.backText}>Retour</Text>
       </Pressable>
+
+      <LessonSceneTabs
+        active={mode === "exercise" ? "exercise" : "quiz"}
+        onSelect={openScene}
+      />
 
       <SackoContextButton
         chapter={chapter}
@@ -926,10 +952,25 @@ export default function QuizPage() {
                   : styles.feedbackIncorrect,
               ]}
             >
-              <Text style={styles.feedbackTitle}>{feedback.feedback.title}</Text>
-              <Text style={styles.feedbackText}>
-                {feedback.feedback.explanation}
-              </Text>
+              <View style={styles.feedbackCopy}>
+                <View style={styles.feedbackTextColumn}>
+                  <Text style={styles.feedbackTitle}>
+                    {feedback.correct ? "Bravo !" : "Continue, tu progresses !"}
+                  </Text>
+                  <Text style={styles.feedbackText}>
+                    {feedback.feedback.explanation}
+                  </Text>
+                </View>
+                <Image
+                  contentFit="contain"
+                  source={
+                    feedback.correct
+                      ? require("../assets/images/dashboard-student-cameleon.svg")
+                      : require("../assets/images/cameleon-feedback-sad.svg")
+                  }
+                  style={styles.feedbackMascot}
+                />
+              </View>
               <Pressable onPress={() => void continueQuiz()} style={styles.button}>
                 <Text style={styles.buttonText}>
                   {currentIndex + 1 < questions.length ? "Question suivante" : "Voir mon résultat"}
@@ -997,45 +1038,52 @@ const styles = StyleSheet.create({
   },
   startButtonText: { color: colors.primary, fontSize: 17, fontWeight: "900" },
   progressRow: {
-    width: 112,
-    height: 112,
-    alignSelf: "center",
-    alignItems: "center",
+    width: "100%",
+    minHeight: 108,
+    alignItems: "flex-start",
     justifyContent: "center",
-    backgroundColor: "#254EA5",
-    borderColor: colors.secondary,
-    borderRadius: 56,
-    borderWidth: 8,
-    marginBottom: 28,
+    backgroundColor: "#7928B8",
+    borderRadius: 24,
+    marginBottom: 16,
+    marginTop: 14,
+    paddingHorizontal: 18,
+    paddingRight: 102,
     position: "relative",
+    shadowColor: "#4C1D95",
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 5,
   },
   progressText: {
-    maxWidth: 82,
     color: colors.surface,
     fontSize: 16,
     fontWeight: "900",
-    textAlign: "center",
   },
   progressTrack: {
-    width: 68,
-    height: 5,
+    width: "100%",
+    height: 8,
     overflow: "hidden",
     backgroundColor: "rgba(255,255,255,0.22)",
     borderRadius: 4,
     marginTop: 7,
   },
-  progressFill: { height: "100%", backgroundColor: colors.secondary },
+  progressFill: { height: "100%", backgroundColor: "#55C95B" },
   questionCard: {
-    backgroundColor: "transparent",
+    backgroundColor: colors.surface,
+    borderColor: "#E7D7F5",
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 16,
+    shadowColor: "#10285F",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 3,
   },
   sceneTitle: {
     alignSelf: "center",
-    overflow: "hidden",
-    color: colors.surface,
-    backgroundColor: colors.secondary,
-    borderColor: colors.primary,
-    borderRadius: 18,
-    borderWidth: 2,
+    color: "#6B21A8",
     fontSize: 18,
     fontWeight: "900",
     marginBottom: 18,
@@ -1245,9 +1293,24 @@ const styles = StyleSheet.create({
     marginTop: 24,
   },
   loader: { marginTop: 16 },
-  feedback: { borderRadius: 22, marginTop: 18, padding: 18 },
-  feedbackCorrect: { backgroundColor: "#E4F7EA" },
-  feedbackIncorrect: { backgroundColor: "#FFF0E5" },
+  feedback: {
+    borderColor: "rgba(16,40,95,0.08)",
+    borderRadius: 24,
+    borderWidth: 1,
+    marginTop: 18,
+    overflow: "hidden",
+    padding: 18,
+    shadowColor: "#10285F",
+    shadowOffset: { width: 0, height: 7 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  feedbackCorrect: { backgroundColor: "#EAF8E8" },
+  feedbackIncorrect: { backgroundColor: "#FFF1EA" },
+  feedbackCopy: { flexDirection: "row", alignItems: "center", gap: 12 },
+  feedbackTextColumn: { flex: 1 },
+  feedbackMascot: { width: 104, height: 104 },
   feedbackTitle: { color: colors.textStrong, fontSize: 19, fontWeight: "900" },
   feedbackText: { color: colors.text, fontSize: 14, lineHeight: 21, marginTop: 6 },
   button: {
@@ -1311,14 +1374,14 @@ const styles = StyleSheet.create({
   xpText: { color: "#92400E", fontSize: 13, fontWeight: "900" },
   audioPlaceholder: {
     position: "absolute",
-    right: -112,
-    top: 13,
+    right: 15,
+    top: 17,
     width: 72,
     minHeight: 72,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.surface,
-    borderColor: colors.primary,
+    borderColor: "rgba(255,255,255,0.55)",
     borderRadius: 22,
     borderWidth: 2,
     elevation: 5,

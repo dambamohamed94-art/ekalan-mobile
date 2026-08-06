@@ -8,6 +8,7 @@ import {
   StudentLessonContext,
 } from "../types/learning";
 import { getStudentHome } from "./studentService";
+import { getStudentDashboard } from "./roleDashboardService";
 import { isNativeQuizScene } from "../quiz/quizAdapter";
 import { MobileSceneType, toApiSceneType } from "../api/contractAdapters";
 
@@ -51,6 +52,11 @@ type EngineLesson = {
   revision?: LearningQuiz[] | LearningQuiz;
   fiche_revision?: LearningQuiz[] | LearningQuiz;
   videos?: LearningQuiz[];
+  medias?: LearningQuiz[];
+  fiche_cours?: LearningQuiz[] | LearningQuiz;
+  content?: LearningQuiz[] | LearningQuiz;
+  quiz_interactifs?: LearningQuiz[];
+  exercices?: LearningQuiz[];
 };
 
 const SERVER_ORIGIN = "https://ekalan.com";
@@ -94,7 +100,41 @@ export async function getStudentChapter(
     "/student/chapter",
     { subject: subjectKey, chapter: chapterId },
   );
+  try {
+    const dashboard = await getStudentDashboard();
+    data.chapter.lessons = data.chapter.lessons.map((lesson) =>
+      applySavedLessonProgress(lesson, dashboard, subjectKey, chapterId),
+    );
+    const lessonValues = data.chapter.lessons.map(
+      (lesson) => Number(lesson.progress_pct ?? 0) || 0,
+    );
+    (data.chapter as LearningChapter & { progress_pct?: number }).progress_pct =
+      lessonValues.length
+        ? Math.round(lessonValues.reduce((sum, value) => sum + value, 0) / lessonValues.length)
+        : 0;
+  } catch {
+    // Le contenu du chapitre reste accessible si le dashboard est indisponible.
+  }
   return data.chapter;
+}
+
+function applySavedLessonProgress(
+  lesson: LearningLesson,
+  dashboard: Awaited<ReturnType<typeof getStudentDashboard>>,
+  subjectKey: string,
+  chapterId: string,
+) {
+  const activity = dashboard.recent_activity?.find(
+    (item) =>
+      String(item.subject_key ?? "") === subjectKey &&
+      String(item.chapter_id ?? "") === chapterId &&
+      String(item.lesson_id ?? "") === String(lesson.id) &&
+      ["done", "in_progress"].includes(String(item.status ?? "")),
+  );
+  if (!activity) return lesson;
+
+  const progress = activity.status === "done" ? 100 : 50;
+  return { ...lesson, progress_pct: progress, completed: progress >= 100 };
 }
 
 export async function getStudentLesson(
@@ -123,7 +163,7 @@ export async function getStudentLessonContext(
   const lessonIndex = String(
     Math.max(0, Number.parseInt(index || "0", 10) || 0),
   );
-  return getLearningPayload<StudentLessonContext>(
+  const context = await getLearningPayload<StudentLessonContext>(
     "/student/lesson",
     {
       subject: subjectKey,
@@ -132,6 +172,24 @@ export async function getStudentLessonContext(
       lesson: lesson?.trim() || undefined,
     },
   );
+
+  // `/student/lesson` exposes pedagogical content but no saved progress.
+  // Reconcile it with the canonical dashboard so a focus refresh never resets
+  // the lesson bar to 0 after a scene or the lesson has been completed.
+  try {
+    const dashboard = await getStudentDashboard();
+    context.lesson = applySavedLessonProgress(
+      context.lesson,
+      dashboard,
+      subjectKey,
+      chapterId,
+    );
+    context.lesson_progress_pct = context.lesson.progress_pct;
+  } catch {
+    // The lesson remains usable if the optional dashboard reconciliation fails.
+  }
+
+  return context;
 }
 
 function asQuizQuestions(quiz: LearningQuiz): LearningQuiz[] {
@@ -203,18 +261,25 @@ async function getOfficialLessonScenes(
   const requestedLesson = String(lesson ?? context.lesson.id ?? "");
   let contentLesson: EngineLesson = {};
   if (requestedLesson) {
-    const contentResponse = await api.get<ApiResponse<EngineLesson>>(
-      "/student/lesson-content",
-      {
-        params: {
-          subject,
-          chapter,
-          lesson: requestedLesson,
+    try {
+      const contentResponse = await api.get<ApiResponse<EngineLesson>>(
+        "/student/lesson-content",
+        {
+          params: {
+            subject,
+            chapter,
+            lesson: requestedLesson,
+          },
         },
-      },
-    );
-    contentLesson = getApiData(contentResponse);
-  } else {
+      );
+      contentLesson = getApiData(contentResponse);
+    } catch {
+      // Certaines anciennes entrées du moteur ne sont pas encore résolues par
+      // cette route, alors que leur `content_file` officiel est bien publié.
+    }
+  }
+
+  if (Object.keys(contentLesson).length === 0) {
     const contentUrl = officialContentUrl(context.lesson.content_file ?? "");
     if (contentUrl) {
       const contentResponse = await api.get<EngineLesson>(contentUrl);
@@ -222,11 +287,22 @@ async function getOfficialLessonScenes(
     }
   }
 
+  if (Object.keys(contentLesson).length === 0) {
+    contentLesson = context.lesson as EngineLesson;
+  }
+
   const sceneMap = {
-    quiz: contentLesson.quiz_scenes,
-    exercise: contentLesson.exercise_scenes,
-    course: contentLesson.course_scenes,
-    video: contentLesson.video_scenes ?? contentLesson.videos,
+    quiz: contentLesson.quiz_scenes ?? contentLesson.quiz_interactifs,
+    exercise: contentLesson.exercise_scenes ?? contentLesson.exercices,
+    course:
+      contentLesson.course_scenes ??
+      contentLesson.fiche_cours ??
+      contentLesson.content,
+    video:
+      contentLesson.video_scenes ??
+      contentLesson.videos ??
+      contentLesson.medias ??
+      context.chapter_assets.medias,
     revision:
       contentLesson.revision_scenes ??
       contentLesson.revisions ??
@@ -302,20 +378,26 @@ export async function getStudentLessonExercise(
   lesson?: string,
 ) {
   const context = await getStudentLessonContext(subject, chapter, index, lesson);
-  const engine = await getOfficialLessonScenes(
-    context,
-    subject,
-    chapter,
-    index,
-    lesson,
-    "exercise",
-  );
   const apiExercises = (context.lesson.exercices ?? []) as LearningQuiz[];
-  return {
-    context,
-    questions: engine.questions.length ? engine.questions : apiExercises,
-    externalQuizUrl: engine.externalQuizUrl,
-  };
+  try {
+    const engine = await getOfficialLessonScenes(
+      context,
+      subject,
+      chapter,
+      index,
+      lesson,
+      "exercise",
+    );
+    return {
+      context,
+      questions: engine.questions.length ? engine.questions : apiExercises,
+      externalQuizUrl: engine.externalQuizUrl,
+    };
+  } catch {
+    // Les exercices déjà présents dans le contexte de leçon restent
+    // utilisables lorsque la ressource détaillée est absente ou indisponible.
+    return { context, questions: apiExercises, externalQuizUrl: undefined };
+  }
 }
 
 export async function getStudentLessonQuiz(
@@ -511,6 +593,8 @@ export async function markLessonSceneOpened(data: {
   const response = await api.post<ApiResponse<{
     message: string;
     status: "in_progress" | "done";
+    lesson_progress_pct: number;
+    subject_progress_pct: number;
     scene_progress?: Record<string, unknown> | null;
   }>>("/student/progress", {
     subject: data.subject,
@@ -532,6 +616,8 @@ export async function markLessonSceneCompleted(data: {
   const response = await api.post<ApiResponse<{
     message: string;
     status: "in_progress" | "done";
+    lesson_progress_pct: number;
+    subject_progress_pct: number;
     scene_progress?: Record<string, unknown> | null;
   }>>("/student/progress", {
     subject: data.subject,

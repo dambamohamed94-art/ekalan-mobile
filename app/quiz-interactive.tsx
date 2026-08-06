@@ -391,7 +391,7 @@ const INJECT_MOBILE_LAYOUT = `
       viewport.name = 'viewport';
       document.head.appendChild(viewport);
     }
-    viewport.content = 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no';
+    viewport.content = 'width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=5, user-scalable=yes';
     var style = document.getElementById('ekalan-mobile-quiz-style');
     if (!style) {
       style = document.createElement('style');
@@ -560,11 +560,14 @@ export default function InteractiveQuizPage() {
       <WebView
         allowsInlineMediaPlayback
         cacheEnabled={false}
+        setDisplayZoomControls={false}
         domStorageEnabled
         injectedJavaScript={INJECT_MOBILE_LAYOUT}
         injectedJavaScriptBeforeContentLoaded={INJECT_MOBILE_LAYOUT}
         javaScriptEnabled
         nestedScrollEnabled
+        scalesPageToFit
+        setBuiltInZoomControls
         onLoadEnd={() =>
           webViewRef.current?.injectJavaScript(INJECT_MOBILE_LAYOUT)
         }

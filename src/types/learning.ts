@@ -78,6 +78,11 @@ export type LearningLesson = {
   exercices: LearningExercise[];
   videos: LearningVideo[];
   fiche_revision: PedagogicalContent | null;
+  progress_pct?: number;
+  progress_percent?: number;
+  progress_percentage?: number;
+  completed?: boolean;
+  is_completed?: boolean;
 };
 
 export type LearningChapter = {
@@ -132,4 +137,5 @@ export type StudentLessonContext = {
     prev_index: number | null;
     next_index: number | null;
   };
+  lesson_progress_pct?: number;
 };
