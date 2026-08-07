@@ -4,7 +4,7 @@
     "slug": "ekalan-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo_mobile.png",
+    "icon": "./assets/images/ekalan-app-icon-premium.png",
     "scheme": "ekalanmobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,7 +12,7 @@
       "supportsTablet": true,
        "bundleIdentifier": "com.ekalan.education",
       "buildNumber": "1",
-      "icon": "./assets/images/logo_mobile.png",
+      "icon": "./assets/images/ekalan-app-icon-premium.png",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false
@@ -33,7 +33,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/images/logo_mobile.png"
+        "foregroundImage": "./assets/images/ekalan-app-icon-premium.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
